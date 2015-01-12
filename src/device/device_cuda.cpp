@@ -65,7 +65,7 @@ public:
 
 	static bool have_precompiled_kernels()
 	{
-		string cubins_path = path_get("lib");
+		string cubins_path = path_get(ccl::libpath);
 		return path_exists(cubins_path);
 	}
 
@@ -204,13 +204,32 @@ public:
 		/* compute cubin name */
 		int major, minor;
 		cuDeviceComputeCapability(&major, &minor, cuDevId);
+		
 		string cubin;
+
+		/* ToDo: We don't bundle sm_52 kernel yet */
+		if(major == 5 && minor == 2) {
+			VLOG(1) << "Using workaround for sm_52 kernel";
+			if(experimental)
+				cubin = path_get(string_printf("%s/kernel_experimental_sm_%d%d.cubin", ccl::libpath.c_str(), major, minor));
+			else
+				cubin = path_get(string_printf("%s/kernel_sm_%d%d.cubin", ccl::libpath.c_str(), major, minor));
+
+			if(path_exists(cubin)) {
+				VLOG(1) << "Using self-built sm_52 kernel " << cubin;
+				return cubin;
+			}
+			else {
+				VLOG(1) << "Compiling sm_50 instead of sm_52 as workaround";
+				minor = 0;
+			}
+		}
 
 		/* attempt to use kernel provided with blender */
 		if(experimental)
-			cubin = path_get(string_printf("lib/kernel_experimental_sm_%d%d.cubin", major, minor));
+			cubin = path_get(string_printf("%s/kernel_experimental_sm_%d%d.cubin", ccl::libpath.c_str(), major, minor));
 		else
-			cubin = path_get(string_printf("lib/kernel_sm_%d%d.cubin", major, minor));
+			cubin = path_get(string_printf("%s/kernel_sm_%d%d.cubin", ccl::libpath.c_str(), major, minor));
 		VLOG(1) << "Testing for pre-compiled kernel " << cubin;
 		if(path_exists(cubin)) {
 			VLOG(1) << "Using precompiled kernel";

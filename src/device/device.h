@@ -69,6 +69,10 @@ public:
 	}
 };
 
+/* kernel location */
+
+extern string libpath;
+
 /* Device */
 
 struct DeviceDrawParams {
