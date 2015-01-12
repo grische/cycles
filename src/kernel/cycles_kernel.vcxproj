@@ -116,7 +116,6 @@
     <ClInclude Include="kernel_compat_opencl.h" />
     <ClInclude Include="kernel_debug.h" />
     <ClInclude Include="kernel_differential.h" />
-    <ClInclude Include="kernel_displace.h" />
     <ClInclude Include="kernel_emission.h" />
     <ClInclude Include="kernel_film.h" />
     <ClInclude Include="kernel_globals.h" />

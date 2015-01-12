@@ -100,7 +100,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="util_cache.cpp" />
-    <ClCompile Include="util_dynlib.cpp" />
     <ClCompile Include="util_logging.cpp" />
     <ClCompile Include="util_md5.cpp" />
     <ClCompile Include="util_path.cpp" />
@@ -117,7 +116,6 @@
     <ClInclude Include="util_boundbox.h" />
     <ClInclude Include="util_cache.h" />
     <ClInclude Include="util_debug.h" />
-    <ClInclude Include="util_dynlib.h" />
     <ClInclude Include="util_foreach.h" />
     <ClInclude Include="util_function.h" />
     <ClInclude Include="util_half.h" />

@@ -115,7 +115,6 @@
     <ClInclude Include="kernel_compat_cuda.h" />
     <ClInclude Include="kernel_compat_opencl.h" />
     <ClInclude Include="kernel_differential.h" />
-    <ClInclude Include="kernel_displace.h" />
     <ClInclude Include="kernel_emission.h" />
     <ClInclude Include="kernel_film.h" />
     <ClInclude Include="kernel_globals.h" />
@@ -160,8 +159,6 @@
     <ClInclude Include="closure\bsdf_toon.h" />
     <ClInclude Include="closure\bsdf_transparent.h" />
     <ClInclude Include="closure\bsdf_util.h" />
-    <ClInclude Include="closure\bsdf_ward.h" />
-    <ClInclude Include="closure\bsdf_westin.h" />
     <ClInclude Include="closure\bsdf_hair.h" />
     <ClInclude Include="closure\bssrdf.h" />
     <ClInclude Include="closure\emissive.h" />
@@ -196,7 +193,6 @@
     <ClInclude Include="svm\svm_noisetex.h" />
     <ClInclude Include="svm\svm_normal.h" />
     <ClInclude Include="svm\svm_ramp.h" />
-    <ClInclude Include="svm\svm_sepcomb_rgb.h" />
     <ClInclude Include="svm\svm_sepcomb_hsv.h" />
     <ClInclude Include="svm\svm_sky.h" />
     <ClInclude Include="svm\svm_tex_coord.h" />

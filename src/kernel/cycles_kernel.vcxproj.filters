@@ -41,9 +41,6 @@
     <ClInclude Include="kernel_differential.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="kernel_displace.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="kernel_emission.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -41,9 +41,6 @@
     <ClInclude Include="kernel_differential.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="kernel_displace.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="kernel_emission.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -132,12 +129,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="closure\bsdf_util.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="closure\bsdf_ward.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="closure\bsdf_westin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="closure\bsdf_hair.h">
@@ -237,9 +228,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="svm\svm_ramp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="svm\svm_sepcomb_rgb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="svm\svm_sepcomb_hsv.h">
