@@ -11,13 +11,15 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License.
+ * limitations under the License
  */
 
 #ifndef __UTIL_IMAGE_H__
 #define __UTIL_IMAGE_H__
 
 /* OpenImageIO is used for all image file reading and writing. */
+
+#ifndef NO_OIIO_LOADING
 
 #include <OpenImageIO/imageio.h>
 
@@ -26,6 +28,8 @@ CCL_NAMESPACE_BEGIN
 OIIO_NAMESPACE_USING
 
 CCL_NAMESPACE_END
+
+#endif
 
 #endif /* __UTIL_IMAGE_H__ */
 
