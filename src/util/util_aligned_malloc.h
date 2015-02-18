@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013 Blender Foundation
+ * Copyright 2011-2015 Blender Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-#ifndef __KERNEL_MATH_H__
-#define __KERNEL_MATH_H__
+#ifndef __UTIL_ALIGNED_MALLOC_H__
+#define __UTIL_ALIGNED_MALLOC_H__
 
-#include "util_color.h"
-#include "util_math.h"
-#include "util_math_fast.h"
-#include "util_transform.h"
+CCL_NAMESPACE_BEGIN
 
-#endif /* __KERNEL_MATH_H__ */
+/* Allocate block of size bytes at least aligned to a given value. */
+void *util_aligned_malloc(int size, int alignment);
 
+/* Free memory allocated by util_aligned_malloc. */
+void util_aligned_free(void *ptr);
+
+CCL_NAMESPACE_END
+
+#endif  /* __UTIL_ALIGNED_MALLOC_H__ */

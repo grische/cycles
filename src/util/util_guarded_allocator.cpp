@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013 Blender Foundation
+ * Copyright 2011-2015 Blender Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,36 @@
  * limitations under the License.
  */
 
-#ifndef __KERNEL_MATH_H__
-#define __KERNEL_MATH_H__
+#include "util_guarded_allocator.h"
+#include "util_stats.h"
 
-#include "util_color.h"
-#include "util_math.h"
-#include "util_math_fast.h"
-#include "util_transform.h"
+CCL_NAMESPACE_BEGIN
 
-#endif /* __KERNEL_MATH_H__ */
+static Stats global_stats;
 
+/* Internal API. */
+
+void util_guarded_mem_alloc(size_t n)
+{
+	global_stats.mem_alloc(n);
+}
+
+void util_guarded_mem_free(size_t n)
+{
+	global_stats.mem_free(n);
+}
+
+/* Public API. */
+
+size_t util_guarded_get_mem_used(void)
+{
+	return global_stats.mem_used;
+}
+
+size_t util_guarded_get_mem_peak(void)
+{
+	return global_stats.mem_peak;
+}
+
+
+CCL_NAMESPACE_END
