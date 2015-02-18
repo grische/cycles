@@ -114,7 +114,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util_algorithm.h" />
-    <ClCompile Include="util_aligned_malloc.h" />
+    <ClInclude Include="util_aligned_malloc.h" />
     <ClInclude Include="util_args.h" />
     <ClInclude Include="util_boundbox.h" />
     <ClInclude Include="util_cache.h" />
