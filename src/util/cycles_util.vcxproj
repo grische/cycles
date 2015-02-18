@@ -99,7 +99,9 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="util_aligned_malloc.cpp" />
     <ClCompile Include="util_cache.cpp" />
+    <ClCompile Include="util_guarded_allocator.cpp" />
     <ClCompile Include="util_logging.cpp" />
     <ClCompile Include="util_md5.cpp" />
     <ClCompile Include="util_path.cpp" />
@@ -112,12 +114,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util_algorithm.h" />
+    <ClCompile Include="util_aligned_malloc.h" />
     <ClInclude Include="util_args.h" />
     <ClInclude Include="util_boundbox.h" />
     <ClInclude Include="util_cache.h" />
     <ClInclude Include="util_debug.h" />
     <ClInclude Include="util_foreach.h" />
     <ClInclude Include="util_function.h" />
+    <ClInclude Include="util_guarded_allocator.h" />
     <ClInclude Include="util_half.h" />
     <ClInclude Include="util_hash.h" />
     <ClInclude Include="util_image.h" />
@@ -125,6 +129,7 @@
     <ClInclude Include="util_logging.h" />
     <ClInclude Include="util_map.h" />
     <ClInclude Include="util_math.h" />
+    <ClInclude Include="util_math_fast.h" />
     <ClInclude Include="util_md5.h" />
     <ClInclude Include="util_opengl.h" />
     <ClInclude Include="util_optimization.h" />
