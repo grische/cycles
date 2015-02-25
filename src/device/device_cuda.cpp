@@ -1118,15 +1118,18 @@ void device_cuda_info(vector<DeviceInfo>& devices)
 		if(cuDeviceGetName(name, 256, num) != CUDA_SUCCESS)
 			continue;
 
+		int major, minor;
+		cuDeviceComputeCapability(&major, &minor, num);
+
+		if (major < 2)
+			continue; /* don't list devices that aren't supported. */
+
 		DeviceInfo info;
 
 		info.type = DEVICE_CUDA;
 		info.description = string(name);
 		info.id = string_printf("CUDA_%d", num);
 		info.num = num;
-
-		int major, minor;
-		cuDeviceComputeCapability(&major, &minor, num);
 		info.advanced_shading = (major >= 2);
 		info.extended_images = (major >= 3);
 		info.pack_images = false;
