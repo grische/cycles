@@ -19,6 +19,7 @@
 #include "device_network.h"
 
 #include "util_foreach.h"
+#include "util_logging.h"
 
 #if defined(WITH_NETWORK)
 
@@ -164,6 +165,8 @@ public:
 
 	void tex_alloc(const char *name, device_memory& mem, InterpolationType interpolation, bool periodic)
 	{
+		VLOG(1) << "Texture allocate: " << name << ", " << mem.memory_size() << " bytes.";
+
 		thread_scoped_lock lock(rpc_lock);
 
 		mem.device_pointer = ++mem_counter;
@@ -269,7 +272,7 @@ public:
 				lock.unlock();
 
 				TileList::iterator it = tile_list_find(the_tiles, tile);
-				if (it != the_tiles.end()) {
+				if(it != the_tiles.end()) {
 					tile.buffers = it->buffers;
 					the_tiles.erase(it);
 				}

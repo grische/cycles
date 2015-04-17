@@ -185,7 +185,7 @@ public:
 		cuda_assert(cuCtxDestroy(cuContext));
 	}
 
-	bool support_device(bool experimental)
+	bool support_device(bool /*experimental*/)
 	{
 		int major, minor;
 		cuDeviceComputeCapability(&major, &minor, cuDevId);
@@ -350,7 +350,7 @@ public:
 		string cubin_data;
 		CUresult result;
 
-		if (path_read_text(cubin, cubin_data))
+		if(path_read_text(cubin, cubin_data))
 			result = cuModuleLoadData(&cuModule, cubin_data.c_str());
 		else
 			result = CUDA_ERROR_FILE_NOT_FOUND;
@@ -363,7 +363,7 @@ public:
 		return (result == CUDA_SUCCESS);
 	}
 
-	void mem_alloc(device_memory& mem, MemoryType type)
+	void mem_alloc(device_memory& mem, MemoryType /*type*/)
 	{
 		cuda_push_context();
 		CUdeviceptr device_pointer;
@@ -438,6 +438,7 @@ public:
 	void tex_alloc(const char *name, device_memory& mem, InterpolationType interpolation, bool periodic)
 	{
 		/* todo: support 3D textures, only CPU for now */
+		VLOG(1) << "Texture allocate: " << name << ", " << mem.memory_size() << " bytes.";
 
 		/* determine format */
 		CUarray_format_enum format;
@@ -502,7 +503,7 @@ public:
 				if(interpolation == INTERPOLATION_CLOSEST) {
 					cuda_assert(cuTexRefSetFilterMode(texref, CU_TR_FILTER_MODE_POINT));
 				}
-				else if (interpolation == INTERPOLATION_LINEAR) {
+				else if(interpolation == INTERPOLATION_LINEAR) {
 					cuda_assert(cuTexRefSetFilterMode(texref, CU_TR_FILTER_MODE_LINEAR));
 				}
 				else {/* CUBIC and SMART are unsupported for CUDA */
@@ -985,7 +986,7 @@ public:
 				int end_sample = tile.start_sample + tile.num_samples;
 
 				for(int sample = start_sample; sample < end_sample; sample++) {
-					if (task->get_cancel()) {
+					if(task->get_cancel()) {
 						if(task->need_finish_queue == false)
 							break;
 					}
@@ -1018,7 +1019,7 @@ public:
 		}
 	};
 
-	int get_split_task_count(DeviceTask& task)
+	int get_split_task_count(DeviceTask& /*task*/)
 	{
 		return 1;
 	}
@@ -1054,12 +1055,12 @@ bool device_cuda_init(void)
 	static bool initialized = false;
 	static bool result = false;
 
-	if (initialized)
+	if(initialized)
 		return result;
 
 	initialized = true;
 	int cuew_result = cuewInit();
-	if (cuew_result == CUEW_SUCCESS) {
+	if(cuew_result == CUEW_SUCCESS) {
 		VLOG(1) << "CUEW initialization succeeded";
 		if(CUDADevice::have_precompiled_kernels()) {
 			VLOG(1) << "Found precompiled  kernels";

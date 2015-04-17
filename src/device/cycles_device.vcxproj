@@ -67,7 +67,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost_1_55_0;$(ProjectDir)..\..\..\clew\include;$(ProjectDir)..\..\..\cuew\include;$(ProjectDir)..\..\..\glew\include;$(ProjectDir)..\..\..\pthreads;$(ProjectDir)..\..\..\OpenImageIO\include;$(ProjectDir)..\..\third_party\atomic;$(ProjectDir)..\render;$(ProjectDir)..\kernel;$(ProjectDir)..\kernel\osl;$(ProjectDir)..\kernel\svm;$(ProjectDir)..\util;$(ProjectDir)..\device;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>GLEW_STATIC;_CRT_SECURE_NO_WARNINGS;CCL_NAMESPACE_BEGIN=namespace ccl {;CCL_NAMESPACE_END=};WITH_OPENCL;WITH_CUDA;WITH_MULTI;WITH_KERNEL_SSE3;WITH_KERNEL_SSE41;WITH_KERNEL_AVX;WITH_KERNEL_AVX2;DEBUG;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC;_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;CCL_NAMESPACE_BEGIN=namespace ccl {;CCL_NAMESPACE_END=};WITH_NETWORK;WITH_OPENCL;WITH_CUDA;WITH_MULTI;WITH_KERNEL_SSE3;WITH_KERNEL_SSE41;WITH_KERNEL_AVX;WITH_KERNEL_AVX2;DEBUG;_DEBUG;CYCLES_STD_UNORDERED_MAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <FloatingPointModel>Fast</FloatingPointModel>
       <CompileAs>CompileAsCpp</CompileAs>
@@ -96,7 +96,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost_1_55_0;$(ProjectDir)..\..\..\clew\include;$(ProjectDir)..\..\..\cuew\include;$(ProjectDir)..\..\..\glew\include;$(ProjectDir)..\..\..\pthreads;$(ProjectDir)..\..\..\OpenImageIO\include;$(ProjectDir)..\..\third_party\atomic;$(ProjectDir)..\render;$(ProjectDir)..\kernel;$(ProjectDir)..\kernel\osl;$(ProjectDir)..\kernel\svm;$(ProjectDir)..\util;$(ProjectDir)..\device;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <PreprocessorDefinitions>GLEW_STATIC;_CRT_SECURE_NO_WARNINGS;CCL_NAMESPACE_BEGIN=namespace ccl {;CCL_NAMESPACE_END=};WITH_OPENCL;WITH_CUDA;WITH_MULTI;WITH_KERNEL_SSE3;WITH_KERNEL_SSE41;WITH_KERNEL_AVX;WITH_KERNEL_AVX2;NDEBUG;_NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC;_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;CCL_NAMESPACE_BEGIN=namespace ccl {;CCL_NAMESPACE_END=};WITH_NETWORK;WITH_OPENCL;WITH_CUDA;WITH_MULTI;WITH_KERNEL_SSE3;WITH_KERNEL_SSE41;WITH_KERNEL_AVX;WITH_KERNEL_AVX2;NDEBUG;_NDEBUG;CYCLES_STD_UNORDERED_MAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FloatingPointModel>Fast</FloatingPointModel>
       <CompileAs>CompileAsCpp</CompileAs>
       <DisableSpecificWarnings>4018;4065;4127;4181;4200;4244;4267;4305;4800</DisableSpecificWarnings>
