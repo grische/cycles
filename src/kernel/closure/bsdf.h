@@ -96,6 +96,10 @@ ccl_device int bsdf_sample(KernelGlobals *kg, const ShaderData *sd, const Shader
 			label = bsdf_ashikhmin_shirley_sample(sc, sd->Ng, sd->I, sd->dI.dx, sd->dI.dy, randu, randv,
 				eval, omega_in, &domega_in->dx, &domega_in->dy, pdf);
 			break;
+		case CLOSURE_BSDF_PHONG_ID:
+			label = bsdf_phong_sample(sc, sd->Ng, sd->I, sd->dI.dx, sd->dI.dy, randu, randv,
+				eval, omega_in, &domega_in->dx, &domega_in->dy, pdf);
+			break;
 		case CLOSURE_BSDF_ASHIKHMIN_VELVET_ID:
 			label = bsdf_ashikhmin_velvet_sample(sc, sd->Ng, sd->I, sd->dI.dx, sd->dI.dy, randu, randv,
 				eval, omega_in, &domega_in->dx, &domega_in->dy, pdf);
@@ -181,6 +185,9 @@ ccl_device float3 bsdf_eval(KernelGlobals *kg, const ShaderData *sd, const Shade
 			case CLOSURE_BSDF_ASHIKHMIN_SHIRLEY_ANISO_ID:
 				eval = bsdf_ashikhmin_shirley_eval_reflect(sc, sd->I, omega_in, pdf);
 				break;
+			case CLOSURE_BSDF_PHONG_ID:
+				eval = bsdf_phong_eval_reflect(sc, sd->I, omega_in, pdf);
+				break;
 			case CLOSURE_BSDF_ASHIKHMIN_VELVET_ID:
 				eval = bsdf_ashikhmin_velvet_eval_reflect(sc, sd->I, omega_in, pdf);
 				break;
@@ -242,6 +249,9 @@ ccl_device float3 bsdf_eval(KernelGlobals *kg, const ShaderData *sd, const Shade
 			case CLOSURE_BSDF_ASHIKHMIN_SHIRLEY_ID:
 			case CLOSURE_BSDF_ASHIKHMIN_SHIRLEY_ANISO_ID:
 				eval = bsdf_ashikhmin_shirley_eval_transmit(sc, sd->I, omega_in, pdf);
+				break;
+			case CLOSURE_BSDF_PHONG_ID:
+				eval = bsdf_phong_eval_transmit(sc, sd->I, omega_in, pdf);
 				break;
 			case CLOSURE_BSDF_ASHIKHMIN_VELVET_ID:
 				eval = bsdf_ashikhmin_velvet_eval_transmit(sc, sd->I, omega_in, pdf);
