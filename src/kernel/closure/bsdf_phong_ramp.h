@@ -88,7 +88,7 @@ ccl_device float3 bsdf_phong_eval_reflect(const ShaderClosure *sc, const float3 
 			float common = 0.5f * M_1_PI_F * cosp;
 			float out = cosNI * (m_exponent + 2) * common;
 			*pdf = (m_exponent + 1) * common;
-			return make_float3(1.0f) * out;
+			return make_float3(1.0f, 1.0f, 1.0f) * out;
 		}
 	}
 	return make_float3(0.0f, 0.0f, 0.0f);
