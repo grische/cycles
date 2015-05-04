@@ -52,7 +52,8 @@ enum ShaderSocketType {
 	SHADER_SOCKET_POINT,
 	SHADER_SOCKET_NORMAL,
 	SHADER_SOCKET_CLOSURE,
-	SHADER_SOCKET_STRING
+	SHADER_SOCKET_STRING,
+	SHADER_SOCKET_COLOR2, /* used in convert node to signal different rgb_to_luminance should be used */
 };
 
 /* Bump
