@@ -1445,6 +1445,9 @@ void ConvertNode::compile(SVMCompiler& compiler)
 		if(from == SHADER_SOCKET_COLOR)
 			/* color to float */
 			compiler.add_node(NODE_CONVERT, NODE_CONVERT_CF, in->stack_offset, out->stack_offset);
+		else if(from == SHADER_SOCKET_COLOR2)
+			/* color to float */
+			compiler.add_node(NODE_CONVERT, NODE_CONVERT_CF2, in->stack_offset, out->stack_offset);
 		else
 			/* vector/point/normal to float */
 			compiler.add_node(NODE_CONVERT, NODE_CONVERT_VF, in->stack_offset, out->stack_offset);
