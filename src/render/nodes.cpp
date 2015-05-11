@@ -1382,6 +1382,8 @@ ConvertNode::ConvertNode(ShaderSocketType from_, ShaderSocketType to_, bool auto
 		add_input("ValInt", SHADER_SOCKET_INT);
 	else if(from == SHADER_SOCKET_COLOR)
 		add_input("Color", SHADER_SOCKET_COLOR);
+	else if(from == SHADER_SOCKET_COLOR2)
+		add_input("Color", SHADER_SOCKET_COLOR);
 	else if(from == SHADER_SOCKET_VECTOR)
 		add_input("Vector", SHADER_SOCKET_VECTOR);
 	else if(from == SHADER_SOCKET_POINT)
