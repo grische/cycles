@@ -186,7 +186,7 @@ ShaderEnum ImageTextureNode::color_space_enum = color_space_init();
 ShaderEnum ImageTextureNode::projection_enum = image_projection_init();
 
 ImageTextureNode::ImageTextureNode()
-: TextureNode("image_texture")
+: ImageSlotTextureNode("image_texture")
 {
 	image_manager = NULL;
 	slot = -1;
@@ -380,7 +380,7 @@ ShaderEnum EnvironmentTextureNode::color_space_enum = color_space_init();
 ShaderEnum EnvironmentTextureNode::projection_enum = env_projection_init();
 
 EnvironmentTextureNode::EnvironmentTextureNode()
-: TextureNode("environment_texture")
+: ImageSlotTextureNode("environment_texture")
 {
 	image_manager = NULL;
 	slot = -1;
@@ -1525,6 +1525,8 @@ void ProxyNode::compile(OSLCompiler& /*compiler*/)
 BsdfNode::BsdfNode(bool scattering_)
 : ShaderNode("bsdf"), scattering(scattering_)
 {
+	special_type = SHADER_SPECIAL_TYPE_CLOSURE;
+
 	add_input("Color", SHADER_SOCKET_COLOR, make_float3(0.8f, 0.8f, 0.8f));
 	add_input("Normal", SHADER_SOCKET_NORMAL, ShaderInput::NORMAL);
 	add_input("SurfaceMixWeight", SHADER_SOCKET_FLOAT, 0.0f, ShaderInput::USE_SVM);
@@ -1614,6 +1616,7 @@ ShaderEnum AnisotropicBsdfNode::distribution_enum = aniso_distribution_init();
 
 AnisotropicBsdfNode::AnisotropicBsdfNode()
 {
+	closure = CLOSURE_BSDF_MICROFACET_GGX_ANISO_ID;
 	distribution = ustring("GGX");
 
 	add_input("Tangent", SHADER_SOCKET_VECTOR, ShaderInput::TANGENT);
@@ -1667,6 +1670,7 @@ ShaderEnum GlossyBsdfNode::distribution_enum = glossy_distribution_init();
 
 GlossyBsdfNode::GlossyBsdfNode()
 {
+	closure = CLOSURE_BSDF_MICROFACET_GGX_ID;
 	distribution = ustring("GGX");
 
 	add_input("Roughness", SHADER_SOCKET_FLOAT, 0.2f);
@@ -1705,6 +1709,7 @@ ShaderEnum GlassBsdfNode::distribution_enum = glass_distribution_init();
 
 GlassBsdfNode::GlassBsdfNode()
 {
+	closure = CLOSURE_BSDF_SHARP_GLASS_ID;
 	distribution = ustring("Sharp");
 
 	add_input("Roughness", SHADER_SOCKET_FLOAT, 0.0f);
@@ -1744,6 +1749,7 @@ ShaderEnum RefractionBsdfNode::distribution_enum = refraction_distribution_init(
 
 RefractionBsdfNode::RefractionBsdfNode()
 {
+	closure = CLOSURE_BSDF_REFRACTION_ID;
 	distribution = ustring("Sharp");
 
 	add_input("Roughness", SHADER_SOCKET_FLOAT, 0.0f);
@@ -1782,6 +1788,7 @@ ShaderEnum ToonBsdfNode::component_enum = toon_component_init();
 
 ToonBsdfNode::ToonBsdfNode()
 {
+	closure = CLOSURE_BSDF_DIFFUSE_TOON_ID;
 	component = ustring("Diffuse");
 
 	add_input("Size", SHADER_SOCKET_FLOAT, 0.5f);
@@ -2141,6 +2148,7 @@ ShaderEnum HairBsdfNode::component_enum = hair_component_init();
 
 HairBsdfNode::HairBsdfNode()
 {
+	closure = CLOSURE_BSDF_HAIR_REFLECTION_ID;
 	component = ustring("Reflection");
 
 	add_input("Offset", SHADER_SOCKET_FLOAT);
@@ -3658,9 +3666,17 @@ void BlackbodyNode::compile(SVMCompiler& compiler)
 	ShaderInput *temperature_in = input("Temperature");
 	ShaderOutput *color_out = output("Color");
 
-	compiler.stack_assign(temperature_in);
 	compiler.stack_assign(color_out);
-	compiler.add_node(NODE_BLACKBODY, temperature_in->stack_offset, color_out->stack_offset);
+
+	if(temperature_in->link == NULL) {
+		float3 color = svm_math_blackbody_color(temperature_in->value.x);
+		compiler.add_node(NODE_VALUE_V, color_out->stack_offset);
+		compiler.add_node(NODE_VALUE_V, color);
+	}
+	else {
+		compiler.stack_assign(temperature_in);
+		compiler.add_node(NODE_BLACKBODY, temperature_in->stack_offset, color_out->stack_offset);
+	}
 }
 
 void BlackbodyNode::compile(OSLCompiler& compiler)
@@ -3758,7 +3774,7 @@ void MathNode::compile(SVMCompiler& compiler)
 		                                 value1_in->value.x,
 		                                 value2_in->value.x);
 		if(use_clamp) {
-			optimized_value = clamp(optimized_value, 0.0f, 1.0f);
+			optimized_value = saturate(optimized_value);
 		}
 		compiler.add_node(NODE_VALUE_F,
 		                  __float_as_int(optimized_value),

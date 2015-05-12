@@ -102,7 +102,6 @@
     <ClCompile Include="attribute.cpp" />
     <ClCompile Include="background.cpp" />
     <ClCompile Include="bake.cpp" />
-    <ClCompile Include="blackbody.cpp" />
     <ClCompile Include="buffers.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="curves.cpp" />
@@ -130,7 +129,6 @@
     <ClInclude Include="attribute.h" />
     <ClInclude Include="background.h" />
     <ClInclude Include="bake.h" />
-    <ClInclude Include="blackbody.h" />
     <ClInclude Include="buffers.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="curves.h" />
