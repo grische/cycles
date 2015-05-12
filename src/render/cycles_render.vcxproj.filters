@@ -21,9 +21,6 @@
     <ClCompile Include="background.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="blackbody.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="buffers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -99,9 +96,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="background.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="blackbody.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="buffers.h">
