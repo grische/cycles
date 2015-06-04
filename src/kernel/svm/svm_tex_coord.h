@@ -18,6 +18,94 @@ CCL_NAMESPACE_BEGIN
 
 /* Texture Coordinate Node */
 
+/* wcs_box_coord gives a Rhino-style WCS box texture coordinate mapping. */
+ccl_device_inline void wcs_box_coord(KernelGlobals *kg, ShaderData *sd, float3 *data)
+{
+	float3 N = ccl_fetch(sd, N);
+
+	int side0 = 0;
+
+	// set side0 = side closest to the point
+	int side1 = (fabsf(data->x) >= fabsf(data->y)) ? 0 : 1;
+	float rr = side1 ? data->y : data->x;
+	if (fabsf(data->z) > fabsf(rr))
+		side1 = 2;
+
+	float t1 = side1 ? data->y : data->x;
+	if (t1 < 0.0)
+		side0 = 2 * side1 + 1;
+	else
+		side0 = 2 * side1 + 2;
+
+	side1 = (fabsf(N.x) >= fabsf(N.y)) ? 0 : 1;
+	rr = side1 ? N.y : N.x;
+	if (fabsf(N.z) > fabsf(rr))
+	{
+		side1 = 2;
+	}
+
+	switch (side1) {
+	case 0: { t1 = N.x; break; }
+	case 1: { t1 = N.y; break; }
+	default: { t1 = N.z; break; }
+	}
+	if (0.0 != t1)
+	{
+		if (t1 < 0.0)
+			side0 = 2 * side1 + 1;
+		else
+			if (t1 > 0.0)
+				side0 = 2 * side1 + 2;
+	}
+
+	// side flag
+	//  1 =  left side (x=-1)
+	//  2 =  right side (x=+1)
+	//  3 =  back side (y=-1)
+	//  4 =  front side (y=+1)
+	//  5 =  bottom side (z=-1)
+	//  6 =  top side (z=+1)
+	float3 v = make_float3(0.0f, 0.0f, 0.0f);
+	switch (side0)
+	{
+	case 1:
+		v.x = -data->y;
+		v.y = data->z;
+		v.z = data->x;
+		break;
+	case 2:
+		v.x = data->y;
+		v.y = data->z;
+		v.z = data->x;
+		break;
+	case 3:
+		v.x = data->x;
+		v.y = data->z;
+		v.z = data->y;
+		break;
+	case 4:
+		v.x = -data->x;
+		v.y = data->z;
+		v.z = data->y;
+		break;
+	case 5:
+		v.x = -data->x;
+		v.y = data->y;
+		v.z = data->z;
+		break;
+	case 6:
+	default:
+		v.x = data->x;
+		v.y = data->y;
+		v.z = data->z;
+		break;
+	}
+
+	data->x = v.x;
+	data->y = v.y;
+	data->z = v.z;
+}
+
 ccl_device void svm_node_tex_coord(KernelGlobals *kg,
                                    ShaderData *sd,
                                    int path_flag,
@@ -45,6 +133,24 @@ ccl_device void svm_node_tex_coord(KernelGlobals *kg,
 				tfm.w = read_node_float(kg, offset);
 				data = transform_point(&tfm, data);
 			}
+			break;
+		}
+		case NODE_TEXCO_WCS_BOX: {
+			data = ccl_fetch(sd, P);
+			if (node.w == 0) {
+				if (ccl_fetch(sd, object) != OBJECT_NONE) {
+					object_inverse_position_transform(kg, sd, &data);
+				}
+			}
+			else {
+				Transform tfm;
+				tfm.x = read_node_float(kg, offset);
+				tfm.y = read_node_float(kg, offset);
+				tfm.z = read_node_float(kg, offset);
+				tfm.w = read_node_float(kg, offset);
+				data = transform_point(&tfm, data);
+			}
+			wcs_box_coord(kg, sd, &data);
 			break;
 		}
 		case NODE_TEXCO_NORMAL: {
@@ -127,6 +233,24 @@ ccl_device void svm_node_tex_coord_bump_dx(KernelGlobals *kg,
 				tfm.w = read_node_float(kg, offset);
 				data = transform_point(&tfm, data);
 			}
+			break;
+		}
+		case NODE_TEXCO_WCS_BOX: {
+			data = ccl_fetch(sd, P) + ccl_fetch(sd, dP).dx;
+			if (node.w == 0) {
+				if (ccl_fetch(sd, object) != OBJECT_NONE) {
+					object_inverse_position_transform(kg, sd, &data);
+				}
+			}
+			else {
+				Transform tfm;
+				tfm.x = read_node_float(kg, offset);
+				tfm.y = read_node_float(kg, offset);
+				tfm.z = read_node_float(kg, offset);
+				tfm.w = read_node_float(kg, offset);
+				data = transform_point(&tfm, data);
+			}
+			wcs_box_coord(kg, sd, &data);
 			break;
 		}
 		case NODE_TEXCO_NORMAL: {
@@ -212,6 +336,24 @@ ccl_device void svm_node_tex_coord_bump_dy(KernelGlobals *kg,
 				tfm.w = read_node_float(kg, offset);
 				data = transform_point(&tfm, data);
 			}
+			break;
+		}
+		case NODE_TEXCO_WCS_BOX: {
+			data = ccl_fetch(sd, P) + ccl_fetch(sd, dP).dy;
+			if (node.w == 0) {
+				if (ccl_fetch(sd, object) != OBJECT_NONE) {
+					object_inverse_position_transform(kg, sd, &data);
+				}
+			}
+			else {
+				Transform tfm;
+				tfm.x = read_node_float(kg, offset);
+				tfm.y = read_node_float(kg, offset);
+				tfm.z = read_node_float(kg, offset);
+				tfm.w = read_node_float(kg, offset);
+				data = transform_point(&tfm, data);
+			}
+			wcs_box_coord(kg, sd, &data);
 			break;
 		}
 		case NODE_TEXCO_NORMAL: {

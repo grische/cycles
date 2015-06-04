@@ -2299,6 +2299,7 @@ TextureCoordinateNode::TextureCoordinateNode()
 	add_output("Camera", SHADER_SOCKET_POINT);
 	add_output("Window", SHADER_SOCKET_POINT);
 	add_output("Reflection", SHADER_SOCKET_NORMAL);
+	add_output("WcsBox", SHADER_SOCKET_POINT);
 
 	from_dupli = false;
 	use_transform = false;
@@ -2421,6 +2422,19 @@ void TextureCoordinateNode::compile(SVMCompiler& compiler)
 		else {
 			compiler.stack_assign(out);
 			compiler.add_node(texco_node, NODE_TEXCO_REFLECTION, out->stack_offset);
+		}
+	}
+
+	out = output("WcsBox");
+	if(!out->links.empty()) {
+		compiler.stack_assign(out);
+		compiler.add_node(texco_node, NODE_TEXCO_WCS_BOX, out->stack_offset, use_transform);
+		if(use_transform) {
+			Transform ob_itfm = transform_inverse(ob_tfm);
+			compiler.add_node(ob_itfm.x);
+			compiler.add_node(ob_itfm.y);
+			compiler.add_node(ob_itfm.z);
+			compiler.add_node(ob_itfm.w);
 		}
 	}
 }
@@ -3799,6 +3813,60 @@ void MathNode::compile(OSLCompiler& compiler)
 	compiler.parameter("type", type);
 	compiler.parameter("Clamp", use_clamp);
 	compiler.add(this, "node_math");
+}
+
+/* MatrixMathN */
+
+MatrixMathNode::MatrixMathNode() : ShaderNode("matrix_math")
+{
+	type = ustring("Point");
+	tfm = transform_identity();
+
+	add_input("Vector", SHADER_SOCKET_VECTOR);
+	add_output("Vector", SHADER_SOCKET_VECTOR);
+}
+
+static ShaderEnum matrix_math_type_init()
+{
+	ShaderEnum enm;
+
+	enm.insert("Point", NODE_MATRIX_MATH_POINT);
+	enm.insert("Direction", NODE_MATRIX_MATH_DIRECTION);
+	enm.insert("Perspective", NODE_MATRIX_MATH_PERSPECTIVE);
+	enm.insert("Direction Transposed", NODE_MATRIX_MATH_DIR_TRANSPOSED);
+
+	return enm;
+}
+
+ShaderEnum MatrixMathNode::type_enum = matrix_math_type_init();
+
+void MatrixMathNode::compile(SVMCompiler& compiler)
+{
+	ShaderInput *vector_in = input("Vector");
+	ShaderOutput *vector_out = output("Vector");
+
+	compiler.stack_assign(vector_in);
+	compiler.stack_assign(vector_out);
+
+	if(vector_in->stack_offset == SVM_STACK_INVALID || vector_out->stack_offset == SVM_STACK_INVALID)
+		return;
+
+	int typeval = type_enum[type];
+
+	compiler.add_node(NODE_MATRIX_MATH, typeval, vector_in->stack_offset, vector_out->stack_offset);
+
+	compiler.add_node(tfm.x);
+	compiler.add_node(tfm.y);
+	compiler.add_node(tfm.z);
+	compiler.add_node(tfm.w);
+
+
+}
+
+void MatrixMathNode::compile(OSLCompiler& compiler)
+{
+	compiler.parameter("Matrix", tfm);
+	compiler.add(this, "node_matrix_math");
 }
 
 /* VectorMath */
