@@ -562,6 +562,16 @@ public:
 	static ShaderEnum type_enum;
 };
 
+class MatrixMathNode : public ShaderNode {
+public:
+	SHADER_NODE_CLASS(MatrixMathNode)
+
+	Transform tfm;
+
+	ustring type;
+	static ShaderEnum type_enum;
+};
+
 class NormalNode : public ShaderNode {
 public:
 	SHADER_NODE_CLASS(NormalNode)

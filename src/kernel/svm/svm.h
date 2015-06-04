@@ -396,6 +396,9 @@ ccl_device_noinline void svm_eval_nodes(KernelGlobals *kg, ShaderData *sd, Shade
 			case NODE_NORMAL:
 				svm_node_normal(kg, sd, stack, node.y, node.z, node.w, &offset);
 				break;
+			case NODE_MATRIX_MATH:
+				svm_node_matrix_math(kg, sd, stack, node.y, node.z, node.w, &offset);
+				break;
 #endif  /* __EXTRA_NODES__ */
 			case NODE_MAPPING:
 				svm_node_mapping(kg, sd, stack, node.y, node.z, &offset);
