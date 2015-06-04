@@ -2299,6 +2299,7 @@ TextureCoordinateNode::TextureCoordinateNode()
 	add_output("Camera", SHADER_SOCKET_POINT);
 	add_output("Window", SHADER_SOCKET_POINT);
 	add_output("Reflection", SHADER_SOCKET_NORMAL);
+	add_output("WcsBox", SHADER_SOCKET_POINT);
 
 	from_dupli = false;
 	use_transform = false;
@@ -2421,6 +2422,19 @@ void TextureCoordinateNode::compile(SVMCompiler& compiler)
 		else {
 			compiler.stack_assign(out);
 			compiler.add_node(texco_node, NODE_TEXCO_REFLECTION, out->stack_offset);
+		}
+	}
+
+	out = output("WcsBox");
+	if(!out->links.empty()) {
+		compiler.stack_assign(out);
+		compiler.add_node(texco_node, NODE_TEXCO_WCS_BOX, out->stack_offset, use_transform);
+		if(use_transform) {
+			Transform ob_itfm = transform_inverse(ob_tfm);
+			compiler.add_node(ob_itfm.x);
+			compiler.add_node(ob_itfm.y);
+			compiler.add_node(ob_itfm.z);
+			compiler.add_node(ob_itfm.w);
 		}
 	}
 }
