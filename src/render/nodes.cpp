@@ -2302,6 +2302,14 @@ TextureCoordinateNode::TextureCoordinateNode()
 	add_output("Window", SHADER_SOCKET_POINT);
 	add_output("Reflection", SHADER_SOCKET_NORMAL);
 	add_output("WcsBox", SHADER_SOCKET_POINT);
+	add_output("EnvSpherical", SHADER_SOCKET_POINT);
+	add_output("EnvEmap", SHADER_SOCKET_POINT);
+	add_output("EnvBox", SHADER_SOCKET_POINT);
+	add_output("EnvLightProbe", SHADER_SOCKET_POINT);
+	add_output("EnvCubemap", SHADER_SOCKET_POINT);
+	add_output("EnvCubemapVerticalCross", SHADER_SOCKET_POINT);
+	add_output("EnvCubemapHorizontalCross", SHADER_SOCKET_POINT);
+	add_output("EnvHemi", SHADER_SOCKET_POINT);
 
 	from_dupli = false;
 	use_transform = false;
@@ -2438,6 +2446,54 @@ void TextureCoordinateNode::compile(SVMCompiler& compiler)
 			compiler.add_node(ob_itfm.z);
 			compiler.add_node(ob_itfm.w);
 		}
+	}
+
+	out = output("EnvSpherical");
+	if(!out->links.empty()) {
+		compiler.stack_assign(out);
+		compiler.add_node(texco_node, NODE_TEXCO_ENV_SPHERICAL, out->stack_offset);
+	}
+
+	out = output("EnvEmap");
+	if(!out->links.empty()) {
+		compiler.stack_assign(out);
+		compiler.add_node(texco_node, NODE_TEXCO_ENV_EMAP, out->stack_offset);
+	}
+
+	out = output( "EnvBox" );
+	if( !out->links.empty() ) {
+		compiler.stack_assign( out );
+		compiler.add_node( texco_node, NODE_TEXCO_ENV_BOX, out->stack_offset );
+	}
+
+	out = output("EnvLightProbe");
+	if(!out->links.empty()) {
+		compiler.stack_assign(out);
+		compiler.add_node(texco_node, NODE_TEXCO_ENV_LIGHTPROBE, out->stack_offset);
+	}
+
+	out = output( "EnvCubemap" );
+	if( !out->links.empty() ) {
+		compiler.stack_assign( out );
+		compiler.add_node( texco_node, NODE_TEXCO_ENV_CUBEMAP, out->stack_offset );
+	}
+
+	out = output( "EnvCubemapVerticalCross" );
+	if( !out->links.empty() ) {
+		compiler.stack_assign( out );
+		compiler.add_node( texco_node, NODE_TEXCO_ENV_CUBEMAP_VERTICAL_CROSS, out->stack_offset );
+	}
+
+	out = output( "EnvCubemapHorizontalCross" );
+	if( !out->links.empty() ) {
+		compiler.stack_assign( out );
+		compiler.add_node( texco_node, NODE_TEXCO_ENV_CUBEMAP_HORIZONTAL_CROSS, out->stack_offset );
+	}
+
+	out = output( "EnvHemi" );
+	if( !out->links.empty() ) {
+		compiler.stack_assign( out );
+		compiler.add_node( texco_node, NODE_TEXCO_ENV_HEMI, out->stack_offset );
 	}
 }
 
@@ -3817,7 +3873,7 @@ void MathNode::compile(OSLCompiler& compiler)
 	compiler.add(this, "node_math");
 }
 
-/* MatrixMathN */
+/* MatrixMath */
 
 MatrixMathNode::MatrixMathNode() : ShaderNode("matrix_math")
 {
