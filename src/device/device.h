@@ -92,6 +92,11 @@ public:
 	 */
 	int nodes_features;
 
+	/* BVH/sampling kernel features. */
+	bool use_hair;
+	bool use_object_motion;
+	bool use_camera_motion;
+
 	DeviceRequestedFeatures()
 	{
 		/* TODO(sergey): Find more meaningful defaults. */
@@ -99,6 +104,9 @@ public:
 		max_closure = 0;
 		max_nodes_group = 0;
 		nodes_features = 0;
+		use_hair = false;
+		use_object_motion = false;
+		use_camera_motion = false;
 	}
 
 	bool modified(const DeviceRequestedFeatures& requested_features)
@@ -119,13 +127,16 @@ struct DeviceDrawParams {
 
 class Device {
 protected:
-	Device(DeviceInfo& info_, Stats &stats_, bool background) : background(background), info(info_), stats(stats_) {}
+	Device(DeviceInfo& info_, Stats &stats_, bool background) : background(background), vertex_buffer(0), info(info_), stats(stats_) {}
 
 	bool background;
 	string error_msg;
 
+	/* used for real time display */
+	unsigned int vertex_buffer;
+
 public:
-	virtual ~Device() {}
+	virtual ~Device();
 
 	/* info */
 	DeviceInfo info;
@@ -178,7 +189,7 @@ public:
 	
 	/* opengl drawing */
 	virtual void draw_pixels(device_memory& mem, int y, int w, int h,
-		int dy, int width, int height, bool transparent,
+		int dx, int dy, int width, int height, bool transparent,
 		const DeviceDrawParams &draw_params);
 
 #ifdef WITH_NETWORK

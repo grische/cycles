@@ -422,7 +422,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 			int scanlinesize = width*components*sizeof(uchar);
 
 			in->read_image(TypeDesc::UINT8,
-				(uchar*)pixels + (height-1)*scanlinesize,
+				(uchar*)pixels + (((size_t)height)-1)*scanlinesize,
 				AutoStride,
 				-scanlinesize,
 				AutoStride);
@@ -443,9 +443,10 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 	builtin_image_pixels_cb(img->filename, img->builtin_data, pixels);
 #endif
 
+	size_t num_pixels = ((size_t)width) * height * depth;
 	if(cmyk) {
 		/* CMYK */
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+2] = (pixels[i*4+2]*pixels[i*4+3])/255;
 			pixels[i*4+1] = (pixels[i*4+1]*pixels[i*4+3])/255;
 			pixels[i*4+0] = (pixels[i*4+0]*pixels[i*4+3])/255;
@@ -454,7 +455,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 	}
 	else if(components == 2) {
 		/* grayscale + alpha */
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = pixels[i*2+1];
 			pixels[i*4+2] = pixels[i*2+0];
 			pixels[i*4+1] = pixels[i*2+0];
@@ -463,7 +464,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 	}
 	else if(components == 3) {
 		/* RGB */
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = 255;
 			pixels[i*4+2] = pixels[i*3+2];
 			pixels[i*4+1] = pixels[i*3+1];
@@ -472,7 +473,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 	}
 	else if(components == 1) {
 		/* grayscale */
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = 255;
 			pixels[i*4+2] = pixels[i];
 			pixels[i*4+1] = pixels[i];
@@ -481,7 +482,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 	}
 
 	if(img->use_alpha == false) {
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = 255;
 		}
 	}
@@ -555,7 +556,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 		vector<float> tmppixels;
 
 		if(components > 4) {
-			tmppixels.resize(width*height*components);
+			tmppixels.resize(((size_t)width)*height*components);
 			readpixels = &tmppixels[0];
 		}
 
@@ -573,7 +574,8 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 		}
 
 		if(components > 4) {
-			for(int i = width*height-1; i >= 0; i--) {
+			size_t dimensions = ((size_t)width)*height;
+			for(size_t i = dimensions-1, pixel = 0; pixel < dimensions; pixel++, i--) {
 				pixels[i*4+3] = tmppixels[i*components+3];
 				pixels[i*4+2] = tmppixels[i*components+2];
 				pixels[i*4+1] = tmppixels[i*components+1];
@@ -594,9 +596,11 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 #ifndef NO_OIIO_LOADING
 	}
 #endif
+
+	size_t num_pixels = ((size_t)width) * height * depth;
 	if(cmyk) {
 		/* CMYK */
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = 255;
 			pixels[i*4+2] = (pixels[i*4+2]*pixels[i*4+3])/255;
 			pixels[i*4+1] = (pixels[i*4+1]*pixels[i*4+3])/255;
@@ -605,7 +609,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 	}
 	else if(components == 2) {
 		/* grayscale + alpha */
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = pixels[i*2+1];
 			pixels[i*4+2] = pixels[i*2+0];
 			pixels[i*4+1] = pixels[i*2+0];
@@ -614,7 +618,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 	}
 	else if(components == 3) {
 		/* RGB */
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = 1.0f;
 			pixels[i*4+2] = pixels[i*3+2];
 			pixels[i*4+1] = pixels[i*3+1];
@@ -623,7 +627,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 	}
 	else if(components == 1) {
 		/* grayscale */
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = 1.0f;
 			pixels[i*4+2] = pixels[i];
 			pixels[i*4+1] = pixels[i];
@@ -632,7 +636,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 	}
 
 	if(img->use_alpha == false) {
-		for(int i = width*height*depth-1; i >= 0; i--) {
+		for(size_t i = num_pixels-1, pixel = 0; pixel < num_pixels; pixel++, i--) {
 			pixels[i*4+3] = 1.0f;
 		}
 	}
