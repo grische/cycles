@@ -1141,19 +1141,19 @@ void device_cuda_info(vector<DeviceInfo>& devices)
 	}
 	
 	vector<DeviceInfo> display_devices;
-	
+
 	for(int num = 0; num < count; num++) {
 		char name[256];
 		int attr;
-		
+
 		if(cuDeviceGetName(name, 256, num) != CUDA_SUCCESS)
 			continue;
 
 		int major, minor;
 		cuDeviceComputeCapability(&major, &minor, num);
-
-		if (major < 2)
-			continue; /* don't list devices that aren't supported. */
+		if(major < 2) {
+			continue;
+		}
 
 		DeviceInfo info;
 
