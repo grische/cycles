@@ -1812,7 +1812,6 @@ static ShaderEnum glossy_distribution_init()
 	enm.insert("Beckmann", CLOSURE_BSDF_MICROFACET_BECKMANN_ID);
 	enm.insert("GGX", CLOSURE_BSDF_MICROFACET_GGX_ID);
 	enm.insert("Ashikhmin-Shirley", CLOSURE_BSDF_ASHIKHMIN_SHIRLEY_ID);
-	enm.insert("Phong", CLOSURE_BSDF_PHONG_ID);
 
 	return enm;
 }

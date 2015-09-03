@@ -57,41 +57,8 @@ ccl_device int bsdf_phong_ramp_setup(ShaderClosure *sc)
 	return SD_BSDF|SD_BSDF_HAS_EVAL;
 }
 
-ccl_device int bsdf_phong_setup(ShaderClosure *sc)
-{
-	sc->type = CLOSURE_BSDF_PHONG_ID;
-	sc->data0 = max(sc->data0, 0.0f);
-	sc->data1 = 0.0f;
-
-	return SD_BSDF | SD_BSDF_HAS_EVAL;
-}
-
 ccl_device void bsdf_phong_ramp_blur(ShaderClosure *sc, float roughness)
 {
-}
-
-ccl_device void bsdf_phong_blur(ShaderClosure *sc, float roughness)
-{
-}
-ccl_device float3 bsdf_phong_eval_reflect(const ShaderClosure *sc, const float3 I, const float3 omega_in, float *pdf)
-{
-	float m_exponent = sc->data0;
-	float cosNI = dot(sc->N, omega_in);
-	float cosNO = dot(sc->N, I);
-	
-	if(cosNI > 0 && cosNO > 0) {
-		// reflect the view vector
-		float3 R = (2 * cosNO) * sc->N - I;
-		float cosRI = dot(R, omega_in);
-		if(cosRI > 0) {
-			float cosp = powf(cosRI, m_exponent);
-			float common = 0.5f * M_1_PI_F * cosp;
-			float out = cosNI * (m_exponent + 2) * common;
-			*pdf = (m_exponent + 1) * common;
-			return make_float3(1.0f, 1.0f, 1.0f) * out;
-		}
-	}
-	return make_float3(0.0f, 0.0f, 0.0f);
 }
 
 ccl_device float3 bsdf_phong_ramp_eval_reflect(const ShaderClosure *sc, const float3 colors[8], const float3 I, const float3 omega_in, float *pdf)
@@ -113,11 +80,6 @@ ccl_device float3 bsdf_phong_ramp_eval_reflect(const ShaderClosure *sc, const fl
 		}
 	}
 	
-	return make_float3(0.0f, 0.0f, 0.0f);
-}
-
-ccl_device float3 bsdf_phong_eval_transmit(const ShaderClosure *sc, const float3 I, const float3 omega_in, float *pdf)
-{
 	return make_float3(0.0f, 0.0f, 0.0f);
 }
 
@@ -164,51 +126,6 @@ ccl_device int bsdf_phong_ramp_sample(const ShaderClosure *sc, const float3 colo
 			}
 		}
 	}
-	return LABEL_REFLECT|LABEL_GLOSSY;
-}
-
-ccl_device int bsdf_phong_sample(const ShaderClosure *sc, float3 Ng, float3 I, float3 dIdx, float3 dIdy, float randu, float randv, float3 *eval, float3 *omega_in, float3 *domega_in_dx, float3 *domega_in_dy, float *pdf)
-{
-	float cosNO = dot(sc->N, I);
-	float m_exponent = sc->data0;
-	
-	if(cosNO > 0) {
-		// reflect the view vector
-		float3 R = (2 * cosNO) * sc->N - I;
-
-#ifdef __RAY_DIFFERENTIALS__
-		*domega_in_dx = (2 * dot(sc->N, dIdx)) * sc->N - dIdx;
-		*domega_in_dy = (2 * dot(sc->N, dIdy)) * sc->N - dIdy;
-#endif
-		
-		float3 T, B;
-		make_orthonormals (R, &T, &B);
-		float phi = M_2PI_F * randu;
-		float cosTheta = powf(randv, 1 / (m_exponent + 1));
-		float sinTheta2 = 1 - cosTheta * cosTheta;
-		float sinTheta = sinTheta2 > 0 ? sqrtf(sinTheta2) : 0;
-		*omega_in = (cosf(phi) * sinTheta) * T +
-		            (sinf(phi) * sinTheta) * B +
-		            (            cosTheta) * R;
-		if(dot(Ng, *omega_in) > 0.0f)
-		{
-			// common terms for pdf and eval
-			float cosNI = dot(sc->N, *omega_in);
-			// make sure the direction we chose is still in the right hemisphere
-			if(cosNI > 0)
-			{
-				float cosp = powf(cosTheta, m_exponent);
-				float common = 0.5f * M_1_PI_F * cosp;
-				*pdf = (m_exponent + 1) * common;
-				float out = cosNI * (m_exponent + 2) * common;
-				*eval = *eval * out;
-			}
-			/*else {
-				*eval = *eval * Ng;
-			}*/
-		}
-	}
-
 	return LABEL_REFLECT|LABEL_GLOSSY;
 }
 
