@@ -159,7 +159,7 @@ ccl_device_inline float3 env_spherical(KernelGlobals *kg, ShaderData *sd)
 	return make_float3(u, v, 0.0f);
 }
 
-ccl_device_inline float3 env_emap( float3 R )
+ccl_device_inline float3 env_emap_act( float3 R )
 {
 	float x = R.x;
 	float y = R.y;
@@ -186,7 +186,7 @@ ccl_device_inline float3 env_emap( KernelGlobals *kg, ShaderData *sd )
 
 	R = make_float3( R.y, -R.z, -R.x );
 
-	return env_emap( R );
+	return env_emap_act( R );
 }
 
 ccl_device_inline float3 env_light_probe( KernelGlobals *kg, ShaderData *sd )
@@ -326,7 +326,7 @@ ccl_device_inline float3 env_cubemap( KernelGlobals *kg, ShaderData *sd )
 		subTextureIndex = (mainAxisDir >= 0.0f ? 4 : 5);
 	}
 
-	float subTextureOffset = float( subTextureIndex ) / 6.0f;
+	float subTextureOffset = (float)( subTextureIndex ) / 6.0f;
 	float ma = fabsf( mainAxisDir );
 
 	float sc = 0.0f;
@@ -489,7 +489,7 @@ ccl_device_inline float3 env_hemispherical( KernelGlobals *kg, ShaderData *sd )
 
 	float3 hemi = normalize( make_float3( R.x, min( R.y, 0.0f ), R.z ) );
 
-	return env_emap( hemi );
+	return env_emap_act( hemi );
 }
 
 ccl_device void svm_node_tex_coord(KernelGlobals *kg,
