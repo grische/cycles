@@ -443,6 +443,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 	builtin_image_pixels_cb(img->filename, img->builtin_data, pixels);
 #endif
 
+#ifndef NO_OIIO_LOADING
 	size_t num_pixels = ((size_t)width) * height * depth;
 	if(cmyk) {
 		/* CMYK */
@@ -486,6 +487,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 			pixels[i*4+3] = 255;
 		}
 	}
+#endif
 
 	return true;
 }
@@ -597,6 +599,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 	}
 #endif
 
+#ifndef NO_OIIO_LOADING
 	size_t num_pixels = ((size_t)width) * height * depth;
 	if(cmyk) {
 		/* CMYK */
@@ -640,6 +643,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 			pixels[i*4+3] = 1.0f;
 		}
 	}
+#endif
 
 	return true;
 }
