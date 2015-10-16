@@ -66,7 +66,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost_1_55_0;$(ProjectDir)..\..\third_party\clew\include;$(ProjectDir)..\..\third_party\cuew\include;$(ProjectDir)..\..\..\glew\include;$(ProjectDir)..\..\..\pthreads;$(ProjectDir)..\..\..\OpenImageIO\include;$(ProjectDir)..\..\third_party\atomic;$(ProjectDir)..\render;$(ProjectDir)..\kernel;$(ProjectDir)..\kernel\osl;$(ProjectDir)..\kernel\svm;$(ProjectDir)..\util;$(ProjectDir)..\device;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost;$(ProjectDir)..\..\third_party\clew\include;$(ProjectDir)..\..\third_party\cuew\include;$(ProjectDir)..\..\..\glew\include;$(ProjectDir)..\..\..\pthreads;$(ProjectDir)..\..\..\OpenImageIO\include;$(ProjectDir)..\..\third_party\atomic;$(ProjectDir)..\render;$(ProjectDir)..\kernel;$(ProjectDir)..\kernel\osl;$(ProjectDir)..\kernel\svm;$(ProjectDir)..\util;$(ProjectDir)..\device;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;CCL_NAMESPACE_BEGIN=namespace ccl {;CCL_NAMESPACE_END=};WITH_NETWORK;WITH_OPENCL;WITH_CUDA;WITH_MULTI;WITH_KERNEL_SSE3;WITH_KERNEL_SSE41;WITH_KERNEL_AVX;WITH_KERNEL_AVX2;DEBUG;_DEBUG;CYCLES_STD_UNORDERED_MAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -83,7 +83,7 @@
     </Link>
     <Lib>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost_1_55_0\stage$(Configuration)\lib;$(ProjectDir)..\..\..\cuew\x64\$(Configuration)\;$(ProjectDir)..\..\..\clew\x64\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost\stage$(Configuration)\lib;$(ProjectDir)..\..\..\cuew\x64\$(Configuration)\;$(ProjectDir)..\..\..\clew\x64\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>cuew.lib;clew.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -93,7 +93,7 @@
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost_1_55_0;$(ProjectDir)..\..\third_party\clew\include;$(ProjectDir)..\..\third_party\cuew\include;$(ProjectDir)..\..\..\glew\include;$(ProjectDir)..\..\..\pthreads;$(ProjectDir)..\..\..\OpenImageIO\include;$(ProjectDir)..\..\third_party\atomic;$(ProjectDir)..\render;$(ProjectDir)..\kernel;$(ProjectDir)..\kernel\osl;$(ProjectDir)..\kernel\svm;$(ProjectDir)..\util;$(ProjectDir)..\device;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost;$(ProjectDir)..\..\third_party\clew\include;$(ProjectDir)..\..\third_party\cuew\include;$(ProjectDir)..\..\..\glew\include;$(ProjectDir)..\..\..\pthreads;$(ProjectDir)..\..\..\OpenImageIO\include;$(ProjectDir)..\..\third_party\atomic;$(ProjectDir)..\render;$(ProjectDir)..\kernel;$(ProjectDir)..\kernel\osl;$(ProjectDir)..\kernel\svm;$(ProjectDir)..\util;$(ProjectDir)..\device;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <PreprocessorDefinitions>GLEW_STATIC;_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;CCL_NAMESPACE_BEGIN=namespace ccl {;CCL_NAMESPACE_END=};WITH_NETWORK;WITH_OPENCL;WITH_CUDA;WITH_MULTI;WITH_KERNEL_SSE3;WITH_KERNEL_SSE41;WITH_KERNEL_AVX;WITH_KERNEL_AVX2;NDEBUG;_NDEBUG;CYCLES_STD_UNORDERED_MAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -112,7 +112,7 @@
     </Link>
     <Lib>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost_1_55_0\stage$(Configuration)\lib;$(ProjectDir)..\..\..\cuew\x64\$(Configuration)\;$(ProjectDir)..\..\..\clew\x64\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\..\..\boost\stage$(Configuration)\lib;$(ProjectDir)..\..\..\cuew\x64\$(Configuration)\;$(ProjectDir)..\..\..\clew\x64\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>cuew.lib;clew.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
