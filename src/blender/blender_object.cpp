@@ -558,11 +558,20 @@ void BlenderSync::sync_objects(BL::SpaceView3D b_v3d, float motion_time)
 	bool cancel = false;
 	bool use_portal = false;
 
+	uint layer_override = get_layer(b_engine.layer_override());
 	for(; b_sce && !cancel; b_sce = b_sce.background_set()) {
+		/* Render layer's scene_layer is affected by local view already,
+		 * which is not a desired behavior here.
+		 */
+		uint scene_layers = layer_override ? layer_override : get_layer(b_scene.layers());
 		for(b_sce.object_bases.begin(b_base); b_base != b_sce.object_bases.end() && !cancel; ++b_base) {
 			BL::Object b_ob = b_base->object();
 			bool hide = (render_layer.use_viewport_visibility)? b_ob.hide(): b_ob.hide_render();
-			uint ob_layer = get_layer(b_base->layers(), b_base->layers_local_view(), render_layer.use_localview, object_is_light(b_ob));
+			uint ob_layer = get_layer(b_base->layers(),
+			                          b_base->layers_local_view(),
+			                          render_layer.use_localview,
+			                          object_is_light(b_ob),
+			                          scene_layers);
 			hide = hide || !(ob_layer & scene_layer);
 
 			if(!hide) {
@@ -659,7 +668,11 @@ void BlenderSync::sync_objects(BL::SpaceView3D b_v3d, float motion_time)
 		mesh_motion_synced.clear();
 }
 
-void BlenderSync::sync_motion(BL::SpaceView3D b_v3d, BL::Object b_override, void **python_thread_state)
+void BlenderSync::sync_motion(BL::RenderSettings b_render,
+                              BL::SpaceView3D b_v3d,
+                              BL::Object b_override,
+                              int width, int height,
+                              void **python_thread_state)
 {
 	if(scene->need_motion() == Scene::MOTION_NONE)
 		return;
@@ -672,6 +685,28 @@ void BlenderSync::sync_motion(BL::SpaceView3D b_v3d, BL::Object b_override, void
 	Camera prevcam = *(scene->camera);
 
 	int frame_center = b_scene.frame_current();
+	float frame_center_delta = 0.0f;
+
+	if(scene->need_motion() != Scene::MOTION_PASS &&
+	   scene->camera->motion_position != Camera::MOTION_POSITION_CENTER)
+	{
+		float shuttertime = scene->camera->shuttertime;
+		if(scene->camera->motion_position == Camera::MOTION_POSITION_END) {
+			frame_center_delta = -shuttertime * 0.5f;
+		}
+		else {
+			assert(scene->camera->motion_position == Camera::MOTION_POSITION_START);
+			frame_center_delta = shuttertime * 0.5f;
+		}
+		float time = frame_center + frame_center_delta;
+		int frame = (int)floorf(time);
+		float subframe = time - frame;
+		python_thread_state_restore(python_thread_state);
+		b_engine.frame_set(frame, subframe);
+		python_thread_state_save(python_thread_state);
+		sync_camera_motion(b_render, b_cam, width, height, 0.0f);
+		sync_objects(b_v3d, 0.0f);
+	}
 
 	/* always sample these times for camera motion */
 	motion_times.insert(-1.0f);
@@ -679,6 +714,9 @@ void BlenderSync::sync_motion(BL::SpaceView3D b_v3d, BL::Object b_override, void
 
 	/* note iteration over motion_times set happens in sorted order */
 	foreach(float relative_time, motion_times) {
+		VLOG(1) << "Synchronizing motion for the relative time "
+		        << relative_time << ".";
+
 		/* fixed shutter time to get previous and next frame for motion pass */
 		float shuttertime;
 
@@ -688,7 +726,7 @@ void BlenderSync::sync_motion(BL::SpaceView3D b_v3d, BL::Object b_override, void
 			shuttertime = scene->camera->shuttertime;
 
 		/* compute frame and subframe time */
-		float time = frame_center + relative_time * shuttertime * 0.5f;
+		float time = frame_center + frame_center_delta + relative_time * shuttertime * 0.5f;
 		int frame = (int)floorf(time);
 		float subframe = time - frame;
 
@@ -698,8 +736,12 @@ void BlenderSync::sync_motion(BL::SpaceView3D b_v3d, BL::Object b_override, void
 		python_thread_state_save(python_thread_state);
 
 		/* sync camera, only supports two times at the moment */
-		if(relative_time == -1.0f || relative_time == 1.0f)
-			sync_camera_motion(b_cam, relative_time);
+		if(relative_time == -1.0f || relative_time == 1.0f) {
+			sync_camera_motion(b_render,
+			                   b_cam,
+			                   width, height,
+			                   relative_time);
+		}
 
 		/* sync object */
 		sync_objects(b_v3d, relative_time);
