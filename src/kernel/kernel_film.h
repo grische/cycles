@@ -37,10 +37,12 @@ ccl_device uchar4 film_float_to_byte(float4 color)
 	uchar4 result;
 
 	/* simple float to byte conversion */
-	result.x = (uchar)(saturate(color.x)*255.055f); /* use slightly larger value than 255.0 to account for rounding errors. */
-	result.y = (uchar)(saturate(color.y)*255.055f);
-	result.z = (uchar)(saturate(color.z)*255.055f);
-	result.w = (uchar)(saturate(color.w)*255.055f);
+	/* add 0.5f to ensure values that should get rounded up are large */
+	/* enough before they get truncated by the down-cast to unsigned char*/
+	result.x = (uchar)(saturate(color.x)*255.0f + 0.5f);
+	result.y = (uchar)(saturate(color.y)*255.0f + 0.5f); 
+	result.z = (uchar)(saturate(color.z)*255.0f + 0.5f);
+	result.w = (uchar)(saturate(color.w)*255.0f + 0.5f);
 
 	return result;
 }
