@@ -864,8 +864,9 @@ public:
 			build_log[ret_val_size] = '\0';
 			/* Skip meaningless empty output from the NVidia compiler. */
 			if(!(ret_val_size == 2 && build_log[0] == '\n')) {
+				std::string s(build_log.data());
 				fprintf(stderr, "OpenCL kernel build output:\n");
-				fprintf(stderr, "%s\n", &build_log[0]);
+				fprintf(stderr, "%s\n", s.c_str());
 			}
 		}
 
@@ -1264,6 +1265,7 @@ public:
 		cl_float d_sample_scale = 1.0f/(task.sample + 1);
 		cl_int d_offset = task.offset;
 		cl_int d_stride = task.stride;
+		cl_int d_skip_linear_to_srgb_conversion = task.skip_linear_to_srgb_conversion;
 
 
 		cl_kernel ckFilmConvertKernel = (rgba_byte)? ckFilmConvertByteKernel: ckFilmConvertHalfFloatKernel;
@@ -1288,7 +1290,8 @@ public:
 		                                   d_w,
 		                                   d_h,
 		                                   d_offset,
-		                                   d_stride);
+		                                   d_stride,
+	                                     d_skip_linear_to_srgb_conversion);
 
 		enqueue_kernel(ckFilmConvertKernel, d_w, d_h);
 	}

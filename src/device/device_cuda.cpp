@@ -690,7 +690,8 @@ public:
 						 &task.w,
 						 &task.h,
 						 &task.offset,
-						 &task.stride};
+						 &task.stride,
+						 &task.skip_linear_to_srgb_conversion};
 
 		/* launch kernel */
 		int threads_per_block;
