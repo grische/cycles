@@ -403,6 +403,7 @@ static ShaderEnum env_projection_init()
 
 	enm.insert("Equirectangular", 0);
 	enm.insert("Mirror Ball", 1);
+	enm.insert("Wallpaper", 2);
 
 	return enm;
 }
@@ -2703,6 +2704,7 @@ void TextureCoordinateNode::compile(SVMCompiler& compiler)
 		compiler.stack_assign( out );
 		compiler.add_node( texco_node, NODE_TEXCO_ENV_HEMI, out->stack_offset );
 	}
+
 }
 
 void TextureCoordinateNode::compile(OSLCompiler& compiler)
