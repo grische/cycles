@@ -38,7 +38,14 @@ void kernel_const_copy(KernelGlobals *kg, const char *name, void *host, size_t s
 		assert(0);
 }
 
-void kernel_tex_copy(KernelGlobals *kg, const char *name, device_ptr mem, size_t width, size_t height, size_t depth, InterpolationType interpolation)
+void kernel_tex_copy(KernelGlobals *kg,
+                     const char *name,
+                     device_ptr mem,
+                     size_t width,
+                     size_t height,
+                     size_t depth,
+                     InterpolationType interpolation,
+                     ExtensionType extension)
 {
 	if(0) {
 	}
@@ -64,6 +71,7 @@ void kernel_tex_copy(KernelGlobals *kg, const char *name, device_ptr mem, size_t
 			tex->data = (float4*)mem;
 			tex->dimensions_set(width, height, depth);
 			tex->interpolation = interpolation;
+			tex->extension = extension;
 		}
 	}
 	else if(strstr(name, "__tex_image")) {
@@ -79,6 +87,7 @@ void kernel_tex_copy(KernelGlobals *kg, const char *name, device_ptr mem, size_t
 			tex->data = (uchar4*)mem;
 			tex->dimensions_set(width, height, depth);
 			tex->interpolation = interpolation;
+			tex->extension = extension;
 		}
 	}
 	else
@@ -109,14 +118,14 @@ void kernel_cpu_path_trace(KernelGlobals *kg, float *buffer, unsigned int *rng_s
 
 /* Film */
 
-void kernel_cpu_convert_to_byte(KernelGlobals *kg, uchar4 *rgba, float *buffer, float sample_scale, int x, int y, int offset, int stride)
+void kernel_cpu_convert_to_byte(KernelGlobals *kg, uchar4 *rgba, float *buffer, float sample_scale, int x, int y, int offset, int stride, int skip_linear_to_srgb_conversion)
 {
-	kernel_film_convert_to_byte(kg, rgba, buffer, sample_scale, x, y, offset, stride);
+	kernel_film_convert_to_byte(kg, rgba, buffer, sample_scale, x, y, offset, stride, skip_linear_to_srgb_conversion);
 }
 
-void kernel_cpu_convert_to_half_float(KernelGlobals *kg, uchar4 *rgba, float *buffer, float sample_scale, int x, int y, int offset, int stride)
+void kernel_cpu_convert_to_half_float(KernelGlobals *kg, uchar4 *rgba, float *buffer, float sample_scale, int x, int y, int offset, int stride, int skip_linear_to_srgb_conversion)
 {
-	kernel_film_convert_to_half_float(kg, rgba, buffer, sample_scale, x, y, offset, stride);
+	kernel_film_convert_to_half_float(kg, rgba, buffer, sample_scale, x, y, offset, stride, skip_linear_to_srgb_conversion);
 }
 
 /* Shader Evaluation */

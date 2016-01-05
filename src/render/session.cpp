@@ -619,8 +619,7 @@ DeviceRequestedFeatures Session::get_requested_device_features()
 		requested_features.max_closure = get_max_closure_count();
 		scene->shader_manager->get_requested_features(
 		        scene,
-		        requested_features.max_nodes_group,
-		        requested_features.nodes_features);
+		        &requested_features);
 	}
 
 	/* This features are not being tweaked as often as shaders,
@@ -640,6 +639,7 @@ DeviceRequestedFeatures Session::get_requested_device_features()
 
 	BakeManager *bake_manager = scene->bake_manager;
 	requested_features.use_baking = bake_manager->get_baking();
+	requested_features.use_integrator_branched = (scene->integrator->method == Integrator::BRANCHED_PATH);
 
 	return requested_features;
 }
@@ -935,6 +935,7 @@ void Session::tonemap(int sample)
 	task.rgba_half = display->rgba_half.device_pointer;
 	task.buffer = buffers->buffer.device_pointer;
 	task.sample = sample;
+	task.skip_linear_to_srgb_conversion = params.skip_linear_to_srgb_conversion ? 1 : 0;
 	tile_manager.state.buffer.get_offset_stride(task.offset, task.stride);
 
 	if(task.w > 0 && task.h > 0) {

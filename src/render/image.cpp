@@ -69,6 +69,9 @@ void ImageManager::set_extended_image_limits(const DeviceInfo& info)
 	else if((info.type == DEVICE_CUDA || info.type == DEVICE_MULTI) && info.extended_images) {
 		tex_num_images = TEX_EXTENDED_NUM_IMAGES_GPU;
 	}
+	else if(info.pack_images) {
+		tex_num_images = TEX_PACKED_NUM_IMAGES;
+	}
 }
 
 bool ImageManager::set_animation_frame_update(int frame)
@@ -155,15 +158,27 @@ bool ImageManager::is_float_image(const string& filename, void *builtin_data, bo
 #endif
 }
 
-static bool image_equals(ImageManager::Image *image, const string& filename, void *builtin_data, InterpolationType interpolation)
+static bool image_equals(ImageManager::Image *image,
+                         const string& filename,
+                         void *builtin_data,
+                         InterpolationType interpolation,
+                         ExtensionType extension)
 {
 	return image->filename == filename &&
 	       image->builtin_data == builtin_data &&
-	       image->interpolation == interpolation;
+	       image->interpolation == interpolation &&
+	       image->extension == extension;
 }
 
-int ImageManager::add_image(const string& filename, void *builtin_data, bool animated, float frame,
-	bool& is_float, bool& is_linear, InterpolationType interpolation, bool use_alpha)
+int ImageManager::add_image(const string& filename,
+                            void *builtin_data,
+                            bool animated,
+                            float frame,
+                            bool& is_float,
+                            bool& is_linear,
+                            InterpolationType interpolation,
+                            ExtensionType extension,
+                            bool use_alpha)
 {
 	Image *img;
 	size_t slot;
@@ -175,7 +190,12 @@ int ImageManager::add_image(const string& filename, void *builtin_data, bool ani
 		/* find existing image */
 		for(slot = 0; slot < float_images.size(); slot++) {
 			img = float_images[slot];
-			if(img && image_equals(img, filename, builtin_data, interpolation)) {
+			if(img && image_equals(img,
+			                       filename,
+			                       builtin_data,
+			                       interpolation,
+			                       extension))
+			{
 				if(img->frame != frame) {
 					img->frame = frame;
 					img->need_load = true;
@@ -214,6 +234,7 @@ int ImageManager::add_image(const string& filename, void *builtin_data, bool ani
 		img->animated = animated;
 		img->frame = frame;
 		img->interpolation = interpolation;
+		img->extension = extension;
 		img->users = 1;
 		img->use_alpha = use_alpha;
 
@@ -222,7 +243,12 @@ int ImageManager::add_image(const string& filename, void *builtin_data, bool ani
 	else {
 		for(slot = 0; slot < images.size(); slot++) {
 			img = images[slot];
-			if(img && image_equals(img, filename, builtin_data, interpolation)) {
+			if(img && image_equals(img,
+			                       filename,
+			                       builtin_data,
+			                       interpolation,
+			                       extension))
+			{
 				if(img->frame != frame) {
 					img->frame = frame;
 					img->need_load = true;
@@ -261,6 +287,7 @@ int ImageManager::add_image(const string& filename, void *builtin_data, bool ani
 		img->animated = animated;
 		img->frame = frame;
 		img->interpolation = interpolation;
+		img->extension = extension;
 		img->users = 1;
 		img->use_alpha = use_alpha;
 
@@ -304,12 +331,20 @@ void ImageManager::remove_image(int slot)
 	}
 }
 
-void ImageManager::remove_image(const string& filename, void *builtin_data, InterpolationType interpolation)
+void ImageManager::remove_image(const string& filename,
+                                void *builtin_data,
+                                InterpolationType interpolation,
+                                ExtensionType extension)
 {
 	size_t slot;
 
 	for(slot = 0; slot < images.size(); slot++) {
-		if(images[slot] && image_equals(images[slot], filename, builtin_data, interpolation)) {
+		if(images[slot] && image_equals(images[slot],
+		                                filename,
+		                                builtin_data,
+		                                interpolation,
+		                                extension))
+		{
 			remove_image(slot+tex_image_byte_start);
 			break;
 		}
@@ -318,7 +353,11 @@ void ImageManager::remove_image(const string& filename, void *builtin_data, Inte
 	if(slot == images.size()) {
 		/* see if it's in a float texture slot */
 		for(slot = 0; slot < float_images.size(); slot++) {
-			if(float_images[slot] && image_equals(float_images[slot], filename, builtin_data, interpolation)) {
+			if(float_images[slot] && image_equals(float_images[slot],
+			                                      filename,
+			                                      builtin_data,
+			                                      interpolation,
+			                                      extension)) {
 				remove_image(slot);
 				break;
 			}
@@ -330,12 +369,19 @@ void ImageManager::remove_image(const string& filename, void *builtin_data, Inte
  * without bunch of arguments passing around making code readability even
  * more cluttered.
  */
-void ImageManager::tag_reload_image(const string& filename, void *builtin_data, InterpolationType interpolation)
+void ImageManager::tag_reload_image(const string& filename,
+                                    void *builtin_data,
+                                    InterpolationType interpolation,
+                                    ExtensionType extension)
 {
 	size_t slot;
 
 	for(slot = 0; slot < images.size(); slot++) {
-		if(images[slot] && image_equals(images[slot], filename, builtin_data, interpolation)) {
+		if(images[slot] && image_equals(images[slot],
+		                                filename,
+		                                builtin_data,
+		                                interpolation,
+		                                extension)) {
 			images[slot]->need_load = true;
 			break;
 		}
@@ -344,7 +390,11 @@ void ImageManager::tag_reload_image(const string& filename, void *builtin_data, 
 	if(slot == images.size()) {
 		/* see if it's in a float texture slot */
 		for(slot = 0; slot < float_images.size(); slot++) {
-			if(float_images[slot] && image_equals(float_images[slot], filename, builtin_data, interpolation)) {
+			if(float_images[slot] && image_equals(float_images[slot],
+			                                      filename,
+			                                      builtin_data,
+			                                      interpolation,
+			                                      extension)) {
 				float_images[slot]->need_load = true;
 				break;
 			}
@@ -416,7 +466,12 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 	/* read RGBA pixels */
 	uchar *pixels = (uchar*)tex_img.resize(width, height, depth);
 
+	if(pixels == NULL) {
+		return false;
+	}
 #ifndef NO_OIIO_LOADING
+	bool cmyk = false;
+
 	if(in) {
 		if(depth <= 1) {
 			int scanlinesize = width*components*sizeof(uchar);
@@ -443,6 +498,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 	builtin_image_pixels_cb(img->filename, img->builtin_data, pixels);
 #endif
 
+#ifndef NO_OIIO_LOADING
 	size_t num_pixels = ((size_t)width) * height * depth;
 	if(cmyk) {
 		/* CMYK */
@@ -486,6 +542,7 @@ bool ImageManager::file_load_image(Image *img, device_vector<uchar4>& tex_img)
 			pixels[i*4+3] = 255;
 		}
 	}
+#endif
 
 	return true;
 }
@@ -549,7 +606,11 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 	/* read RGBA pixels */
 	float *pixels = (float*)tex_img.resize(width, height, depth);
 
+	if(pixels == NULL) {
+		return false;
+	}
 #ifndef NO_OIIO_LOADING
+	bool cmyk = false;
 
 	if(in) {
 		float *readpixels = pixels;
@@ -597,6 +658,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 	}
 #endif
 
+#ifndef NO_OIIO_LOADING
 	size_t num_pixels = ((size_t)width) * height * depth;
 	if(cmyk) {
 		/* CMYK */
@@ -640,6 +702,7 @@ bool ImageManager::file_load_float_image(Image *img, device_vector<float4>& tex_
 			pixels[i*4+3] = 1.0f;
 		}
 	}
+#endif
 
 	return true;
 }
@@ -693,7 +756,10 @@ void ImageManager::device_load_image(Device *device, DeviceScene *dscene, int sl
 
 		if(!pack_images) {
 			thread_scoped_lock device_lock(device_mutex);
-			device->tex_alloc(name.c_str(), tex_img, img->interpolation, true);
+			device->tex_alloc(name.c_str(),
+			                  tex_img,
+			                  img->interpolation,
+			                  img->extension);
 		}
 	}
 	else {
@@ -725,7 +791,10 @@ void ImageManager::device_load_image(Device *device, DeviceScene *dscene, int sl
 
 		if(!pack_images) {
 			thread_scoped_lock device_lock(device_mutex);
-			device->tex_alloc(name.c_str(), tex_img, img->interpolation, true);
+			device->tex_alloc(name.c_str(),
+			                  tex_img,
+			                  img->interpolation,
+			                  img->extension);
 		}
 	}
 

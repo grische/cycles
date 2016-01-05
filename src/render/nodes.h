@@ -24,6 +24,7 @@
 CCL_NAMESPACE_BEGIN
 
 class ImageManager;
+class Scene;
 class Shader;
 
 /* Texture Mapping */
@@ -92,6 +93,7 @@ public:
 	ustring color_space;
 	ustring projection;
 	InterpolationType interpolation;
+	ExtensionType extension;
 	float projection_blend;
 	bool animated;
 
@@ -115,6 +117,7 @@ public:
 	void *builtin_data;
 	ustring color_space;
 	ustring projection;
+	InterpolationType interpolation;
 	bool animated;
 
 	static ShaderEnum color_space_enum;
@@ -249,6 +252,8 @@ public:
 	ConvertNode(ShaderSocketType from, ShaderSocketType to, bool autoconvert = false);
 	SHADER_NODE_BASE_CLASS(ConvertNode)
 
+	bool constant_fold(ShaderOutput *socket, float3 *optimized_value);
+
 	ShaderSocketType from, to;
 };
 
@@ -308,7 +313,10 @@ class GlossyBsdfNode : public BsdfNode {
 public:
 	SHADER_NODE_CLASS(GlossyBsdfNode)
 
-	ustring distribution;
+	void simplify_settings(Scene *scene);
+	bool has_integrator_dependency();
+
+	ustring distribution, distribution_orig;
 	static ShaderEnum distribution_enum;
 };
 
@@ -316,7 +324,10 @@ class GlassBsdfNode : public BsdfNode {
 public:
 	SHADER_NODE_CLASS(GlassBsdfNode)
 
-	ustring distribution;
+	void simplify_settings(Scene *scene);
+	bool has_integrator_dependency();
+
+	ustring distribution, distribution_orig;
 	static ShaderEnum distribution_enum;
 };
 
@@ -324,7 +335,10 @@ class RefractionBsdfNode : public BsdfNode {
 public:
 	SHADER_NODE_CLASS(RefractionBsdfNode)
 
-	ustring distribution;
+	void simplify_settings(Scene *scene);
+	bool has_integrator_dependency();
+
+	ustring distribution, distribution_orig;
 	static ShaderEnum distribution_enum;
 };
 
@@ -473,12 +487,16 @@ class ValueNode : public ShaderNode {
 public:
 	SHADER_NODE_CLASS(ValueNode)
 
+	bool constant_fold(ShaderOutput *socket, float3 *optimized_value);
+
 	float value;
 };
 
 class ColorNode : public ShaderNode {
 public:
 	SHADER_NODE_CLASS(ColorNode)
+
+	bool constant_fold(ShaderOutput *socket, float3 *optimized_value);
 
 	float3 value;
 };
@@ -541,6 +559,9 @@ public:
 class GammaNode : public ShaderNode {
 public:
 	SHADER_NODE_CLASS(GammaNode)
+
+	bool constant_fold(ShaderOutput *socket, float3 *optimized_value);
+
 	virtual int get_group() { return NODE_GROUP_LEVEL_1; }
 };
 
@@ -624,6 +645,7 @@ public:
 class BlackbodyNode : public ShaderNode {
 public:
 	SHADER_NODE_CLASS(BlackbodyNode)
+	bool constant_fold(ShaderOutput *socket, float3 *optimized_value);
 
 	virtual int get_group() { return NODE_GROUP_LEVEL_3; }
 };
@@ -632,6 +654,7 @@ class MathNode : public ShaderNode {
 public:
 	SHADER_NODE_CLASS(MathNode)
 	virtual int get_group() { return NODE_GROUP_LEVEL_1; }
+	bool constant_fold(ShaderOutput *socket, float3 *optimized_value);
 
 	bool use_clamp;
 
@@ -661,6 +684,7 @@ class VectorMathNode : public ShaderNode {
 public:
 	SHADER_NODE_CLASS(VectorMathNode)
 	virtual int get_group() { return NODE_GROUP_LEVEL_1; }
+	bool constant_fold(ShaderOutput *socket, float3 *optimized_value);
 
 	ustring type;
 	static ShaderEnum type_enum;
@@ -698,6 +722,7 @@ public:
 	virtual int get_group() { return NODE_GROUP_LEVEL_3; }
 
 	float4 curves[RAMP_TABLE_SIZE];
+	float min_x, max_x;
 };
 
 class VectorCurvesNode : public ShaderNode {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2013 Blender Foundation
+ * Copyright 2011-2015 Blender Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
+#ifndef __UTIL_QUEUE_H__
+#define __UTIL_QUEUE_H__
+
+#include <queue>
+
 CCL_NAMESPACE_BEGIN
 
-ccl_device void svm_node_gamma(ShaderData *sd, float *stack, uint in_gamma, uint in_color, uint out_color)
-{
-	float3 color = stack_load_float3(stack, in_color);
-	float gamma = stack_load_float(stack, in_gamma);
-
-	color = svm_math_gamma_color(color, gamma);
-
-	if(stack_valid(out_color))
-		stack_store_float3(stack, out_color, color);
-}
+using std::queue;
 
 CCL_NAMESPACE_END
+
+#endif /* __UTIL_LIST_H__ */
+

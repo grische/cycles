@@ -130,7 +130,12 @@ bool opencl_kernel_use_split(const string& platform_name,
                              const cl_device_type device_type)
 {
 	if(getenv("CYCLES_OPENCL_SPLIT_KERNEL_TEST") != NULL) {
+		VLOG(1) << "Forcing split kernel to use.";
 		return true;
+	}
+	if(getenv("CYCLES_OPENCL_MEGA_KERNEL_TEST") != NULL) {
+		VLOG(1) << "Forcing mega kernel to use.";
+		return false;
 	}
 	/* TODO(sergey): Replace string lookups with more enum-like API,
 	 * similar to device/vendor checks blender's gpu.
@@ -313,7 +318,7 @@ void opencl_get_usable_devices(vector<OpenCLPlatformDevice> *usable_devices)
 				continue;
 			}
 			if(!opencl_device_version_check(device_id)) {
-				FIRST_VLOG(2) << "Ignoting device " << device_name
+				FIRST_VLOG(2) << "Ignoring device " << device_name
 				              << " due to old compiler version.";
 				continue;
 			}
@@ -327,8 +332,8 @@ void opencl_get_usable_devices(vector<OpenCLPlatformDevice> *usable_devices)
 				                   &device_type,
 				                   NULL) != CL_SUCCESS)
 				{
-					FIRST_VLOG(2) << "Ignoting device " << device_name
-					              << ", faield to fetch device type.";
+					FIRST_VLOG(2) << "Ignoring device " << device_name
+					              << ", failed to fetch device type.";
 					continue;
 				}
 				FIRST_VLOG(2) << "Adding new device " << device_name << ".";
@@ -339,7 +344,7 @@ void opencl_get_usable_devices(vector<OpenCLPlatformDevice> *usable_devices)
 				                                               device_name));
 			}
 			else {
-				FIRST_VLOG(2) << "Ignoting device " << device_name
+				FIRST_VLOG(2) << "Ignoring device " << device_name
 				              << ", not officially supported yet.";
 			}
 		}
@@ -581,7 +586,7 @@ public:
 	                          ProgramName program_name,
 	                          thread_scoped_lock& slot_locker)
 	{
-		switch (program_name) {
+		switch(program_name) {
 			case OCL_DEV_BASE_PROGRAM:
 				store_something<cl_program>(platform,
 				                            device,
@@ -864,8 +869,9 @@ public:
 			build_log[ret_val_size] = '\0';
 			/* Skip meaningless empty output from the NVidia compiler. */
 			if(!(ret_val_size == 2 && build_log[0] == '\n')) {
+				std::string s(build_log.data());
 				fprintf(stderr, "OpenCL kernel build output:\n");
-				fprintf(stderr, "%s\n", &build_log[0]);
+				fprintf(stderr, "%s\n", s.c_str());
 			}
 		}
 
@@ -995,6 +1001,7 @@ public:
 				VLOG(2) << "Loaded kernel from " << clbin << ".";
 			}
 			else {
+				VLOG(2) << "Kernel file " << clbin << " either doesn't exist or failed to be loaded by driver.";
 				string init_kernel_source = "#include \"kernels/opencl/kernel.cl\" // " + kernel_md5 + "\n";
 
 				/* If does not exist or loading binary failed, compile kernel. */
@@ -1109,7 +1116,7 @@ public:
 	{
 		/* this is blocking */
 		size_t size = mem.memory_size();
-		if(size != 0){
+		if(size != 0) {
 			opencl_assert(clEnqueueWriteBuffer(cqCommandQueue,
 			                                   CL_MEM_PTR(mem.device_pointer),
 			                                   CL_TRUE,
@@ -1179,7 +1186,7 @@ public:
 	void tex_alloc(const char *name,
 	               device_memory& mem,
 	               InterpolationType /*interpolation*/,
-	               bool /*periodic*/)
+	               ExtensionType /*extension*/)
 	{
 		VLOG(1) << "Texture allocate: " << name << ", " << mem.memory_size() << " bytes.";
 		mem_alloc(mem, MEM_READ_ONLY);
@@ -1263,6 +1270,7 @@ public:
 		cl_float d_sample_scale = 1.0f/(task.sample + 1);
 		cl_int d_offset = task.offset;
 		cl_int d_stride = task.stride;
+		cl_int d_skip_linear_to_srgb_conversion = task.skip_linear_to_srgb_conversion;
 
 
 		cl_kernel ckFilmConvertKernel = (rgba_byte)? ckFilmConvertByteKernel: ckFilmConvertHalfFloatKernel;
@@ -1287,7 +1295,8 @@ public:
 		                                   d_w,
 		                                   d_h,
 		                                   d_offset,
-		                                   d_stride);
+		                                   d_stride,
+	                                     d_skip_linear_to_srgb_conversion);
 
 		enqueue_kernel(ckFilmConvertKernel, d_w, d_h);
 	}
@@ -1379,7 +1388,7 @@ public:
 protected:
 	string kernel_build_options(const string *debug_src = NULL)
 	{
-		string build_options = " -cl-fast-relaxed-math ";
+		string build_options = "-cl-fast-relaxed-math ";
 
 		if(platform_name == "NVIDIA CUDA") {
 			build_options += "-D__KERNEL_OPENCL_NVIDIA__ "
@@ -1544,34 +1553,6 @@ protected:
 		}
 	}
 
-	string build_options_from_requested_features(
-	        const DeviceRequestedFeatures& requested_features)
-	{
-		string build_options = "";
-		if(requested_features.experimental) {
-			build_options += " -D__KERNEL_EXPERIMENTAL__";
-		}
-		build_options += " -D__NODES_MAX_GROUP__=" +
-			string_printf("%d", requested_features.max_nodes_group);
-		build_options += " -D__NODES_FEATURES__=" +
-			string_printf("%d", requested_features.nodes_features);
-		build_options += string_printf(" -D__MAX_CLOSURE__=%d",
-		                               requested_features.max_closure);
-		if(!requested_features.use_hair) {
-			build_options += " -D__NO_HAIR__";
-		}
-		if(!requested_features.use_object_motion) {
-			build_options += " -D__NO_OBJECT_MOTION__";
-		}
-		if(!requested_features.use_camera_motion) {
-			build_options += " -D__NO_CAMERA_MOTION__";
-		}
-		if(!requested_features.use_baking) {
-			build_options += " -D__NO_BAKING__";
-		}
-		return build_options;
-	}
-
 	/* ** Those guys are for workign around some compiler-specific bugs ** */
 
 	virtual cl_program load_cached_kernel(
@@ -1605,7 +1586,7 @@ protected:
 		 * mega kernel is not getting feature-based optimizations.
 		 *
 		 * Ideally we need always compile kernel with as less features
-		 * enabed as possible to keep performance at it's max.
+		 * enabled as possible to keep performance at it's max.
 		 */
 		return "";
 	}
@@ -2306,7 +2287,7 @@ public:
 #ifdef __WORK_STEALING__
 		build_options += " -D__WORK_STEALING__";
 #endif
-		build_options += build_options_from_requested_features(requested_features);
+		build_options += requested_features.get_build_options();
 
 		/* Set compute device build option. */
 		cl_device_type device_type;
@@ -3579,7 +3560,7 @@ protected:
 	string build_options_for_base_program(
 	        const DeviceRequestedFeatures& requested_features)
 	{
-		return build_options_from_requested_features(requested_features);
+		return requested_features.get_build_options();
 	}
 };
 
@@ -3610,16 +3591,22 @@ bool device_opencl_init(void)
 
 	initialized = true;
 
-	int clew_result = clewInit();
-	if(clew_result == CLEW_SUCCESS) {
-		VLOG(1) << "CLEW initialization succeeded.";
-		result = true;
+	if(opencl_device_type() != 0) {
+		int clew_result = clewInit();
+		if(clew_result == CLEW_SUCCESS) {
+			VLOG(1) << "CLEW initialization succeeded.";
+			result = true;
+		}
+		else {
+			VLOG(1) << "CLEW initialization failed: "
+			        << ((clew_result == CLEW_ERROR_ATEXIT_FAILED)
+			            ? "Error setting up atexit() handler"
+			            : "Error opening the library");
+		}
 	}
 	else {
-		VLOG(1) << "CLEW initialization failed: "
-		        << ((clew_result == CLEW_ERROR_ATEXIT_FAILED)
-		            ? "Error setting up atexit() handler"
-		            : "Error opening the library");
+		VLOG(1) << "Skip initializing CLEW, platform is force disabled.";
+		result = false;
 	}
 
 	return result;
@@ -3683,7 +3670,7 @@ string device_opencl_capabilities(void)
 	APPEND_STRING_INFO(clGetDeviceInfo, id, "\t\t\tDevice " name, what)
 
 	vector<cl_device_id> device_ids;
-	for (cl_uint platform = 0; platform < num_platforms; ++platform) {
+	for(cl_uint platform = 0; platform < num_platforms; ++platform) {
 		cl_platform_id platform_id = platform_ids[platform];
 
 		result += string_printf("Platform #%u\n", platform);
@@ -3708,7 +3695,7 @@ string device_opencl_capabilities(void)
 		                             num_devices,
 		                             &device_ids[0],
 		                             NULL));
-		for (cl_uint device = 0; device < num_devices; ++device) {
+		for(cl_uint device = 0; device < num_devices; ++device) {
 			cl_device_id device_id = device_ids[device];
 
 			result += string_printf("\t\tDevice: #%u\n", device);

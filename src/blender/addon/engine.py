@@ -30,8 +30,8 @@ def _is_using_buggy_driver():
         version = bgl.glGetString(bgl.GL_VERSION)
         if version.endswith("Compatibility Profile Context"):
             # Old HD 4xxx and 5xxx series drivers did not have driver version
-            # in the version string, but thsoe cards do not quite work and
-            # cusing crashes.
+            # in the version string, but those cards do not quite work and
+            # causing crashes.
             return True
         regex = re.compile(".*Compatibility Profile Context ([0-9]+(\.[0-9]+)+)$")
         if not regex.match(version):
@@ -44,16 +44,18 @@ def _is_using_buggy_driver():
 
 def _workaround_buggy_drivers():
     if _is_using_buggy_driver():
-        import os
-        print("Cycles: OpenGL driver known to be buggy, disabling OpenCL platform.")
-        os.environ["CYCLES_OPENCL_TEST"] = "NONE"
+        import _cycles
+        if hasattr(_cycles, "opencl_disable"):
+            print("Cycles: OpenGL driver known to be buggy, disabling OpenCL platform.")
+            _cycles.opencl_disable()
+
 
 def init():
     import bpy
     import _cycles
     import os.path
 
-    # Workaroud posibly buggy legacy drivers which crashes on the OpenCL
+    # Workaround possibly buggy legacy drivers which crashes on the OpenCL
     # device enumeration.
     #
     # This checks are not really correct because they might still fail
