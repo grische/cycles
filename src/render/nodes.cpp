@@ -15,7 +15,9 @@
  */
 
 #include "image.h"
+#include "integrator.h"
 #include "nodes.h"
+#include "scene.h"
 #include "svm.h"
 #include "svm_math_util.h"
 #include "osl.h"
@@ -1622,6 +1624,56 @@ ConvertNode::ConvertNode(ShaderSocketType from_, ShaderSocketType to_, bool auto
 		assert(0);
 }
 
+bool ConvertNode::constant_fold(ShaderOutput *socket, float3 *optimized_value)
+{
+	ShaderInput *in = inputs[0];
+	float3 value = in->value;
+
+	/* TODO(DingTo): conversion from/to int is not supported yet, don't fold in that case */
+
+	if(socket == outputs[0] && in->link == NULL) {
+		if(from == SHADER_SOCKET_FLOAT) {
+			if(to == SHADER_SOCKET_INT)
+			/* float to int */
+				return false;
+			else
+			/* float to float3 */
+				*optimized_value = make_float3(value.x, value.x, value.x);
+		}
+		else if(from == SHADER_SOCKET_INT) {
+			if(to == SHADER_SOCKET_FLOAT)
+			/* int to float */
+				return false;
+			else
+			/* int to vector/point/normal */
+				return false;
+		}
+		else if(to == SHADER_SOCKET_FLOAT) {
+			if(from == SHADER_SOCKET_COLOR)
+			/* color to float */
+				optimized_value->x = linear_rgb_to_gray(value);
+			else
+			/* vector/point/normal to float */
+				optimized_value->x = average(value);
+		}
+		else if(to == SHADER_SOCKET_INT) {
+			if(from == SHADER_SOCKET_COLOR)
+			/* color to int */
+				return false;
+			else
+			/* vector/point/normal to int */
+				return false;
+		}
+		else {
+			*optimized_value = value;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
 void ConvertNode::compile(SVMCompiler& compiler)
 {
 	ShaderInput *in = inputs[0];
@@ -1880,8 +1932,37 @@ GlossyBsdfNode::GlossyBsdfNode()
 {
 	closure = CLOSURE_BSDF_MICROFACET_GGX_ID;
 	distribution = ustring("GGX");
+	distribution_orig = ustring("");
 
 	add_input("Roughness", SHADER_SOCKET_FLOAT, 0.2f);
+}
+
+void GlossyBsdfNode::simplify_settings(Scene *scene)
+{
+	if(distribution_orig == "") {
+		distribution_orig = distribution;
+	}
+	Integrator *integrator = scene->integrator;
+	if(integrator->filter_glossy == 0.0f) {
+		/* Fallback to Sharp closure for Roughness close to 0.
+		 * Note: Keep the epsilon in sync with kernel!
+		 */
+		ShaderInput *roughness_input = input("Roughness");
+		if(!roughness_input->link && roughness_input->value.x <= 1e-4f) {
+			distribution = ustring("Sharp");
+		}
+	}
+	else {
+		/* Rollback to original distribution when filter glossy is used. */
+		distribution = distribution_orig;
+	}
+	closure = (ClosureType)distribution_enum[distribution];
+}
+
+bool GlossyBsdfNode::has_integrator_dependency()
+{
+	ShaderInput *roughness_input = input("Roughness");
+	return !roughness_input->link && roughness_input->value.x <= 1e-4f;
 }
 
 void GlossyBsdfNode::compile(SVMCompiler& compiler)
@@ -1919,9 +2000,38 @@ GlassBsdfNode::GlassBsdfNode()
 {
 	closure = CLOSURE_BSDF_SHARP_GLASS_ID;
 	distribution = ustring("Sharp");
+	distribution_orig = ustring("");
 
 	add_input("Roughness", SHADER_SOCKET_FLOAT, 0.0f);
 	add_input("IOR", SHADER_SOCKET_FLOAT, 0.3f);
+}
+
+void GlassBsdfNode::simplify_settings(Scene *scene)
+{
+	if(distribution_orig == "") {
+		distribution_orig = distribution;
+	}
+	Integrator *integrator = scene->integrator;
+	if(integrator->filter_glossy == 0.0f) {
+		/* Fallback to Sharp closure for Roughness close to 0.
+		 * Note: Keep the epsilon in sync with kernel!
+		 */
+		ShaderInput *roughness_input = input("Roughness");
+		if(!roughness_input->link && roughness_input->value.x <= 1e-4f) {
+			distribution = ustring("Sharp");
+		}
+	}
+	else {
+		/* Rollback to original distribution when filter glossy is used. */
+		distribution = distribution_orig;
+	}
+	closure = (ClosureType)distribution_enum[distribution];
+}
+
+bool GlassBsdfNode::has_integrator_dependency()
+{
+	ShaderInput *roughness_input = input("Roughness");
+	return !roughness_input->link && roughness_input->value.x <= 1e-4f;
 }
 
 void GlassBsdfNode::compile(SVMCompiler& compiler)
@@ -1959,9 +2069,38 @@ RefractionBsdfNode::RefractionBsdfNode()
 {
 	closure = CLOSURE_BSDF_REFRACTION_ID;
 	distribution = ustring("Sharp");
+	distribution_orig = ustring("");
 
 	add_input("Roughness", SHADER_SOCKET_FLOAT, 0.0f);
 	add_input("IOR", SHADER_SOCKET_FLOAT, 0.3f);
+}
+
+void RefractionBsdfNode::simplify_settings(Scene *scene)
+{
+	if(distribution_orig == "") {
+		distribution_orig = distribution;
+	}
+	Integrator *integrator = scene->integrator;
+	if(integrator->filter_glossy == 0.0f) {
+		/* Fallback to Sharp closure for Roughness close to 0.
+		 * Note: Keep the epsilon in sync with kernel!
+		 */
+		ShaderInput *roughness_input = input("Roughness");
+		if(!roughness_input->link && roughness_input->value.x <= 1e-4f) {
+			distribution = ustring("Sharp");
+		}
+	}
+	else {
+		/* Rollback to original distribution when filter glossy is used. */
+		distribution = distribution_orig;
+	}
+	closure = (ClosureType)distribution_enum[distribution];
+}
+
+bool RefractionBsdfNode::has_integrator_dependency()
+{
+	ShaderInput *roughness_input = input("Roughness");
+	return !roughness_input->link && roughness_input->value.x <= 1e-4f;
 }
 
 void RefractionBsdfNode::compile(SVMCompiler& compiler)
@@ -3165,6 +3304,13 @@ ValueNode::ValueNode()
 	add_output("Value", SHADER_SOCKET_FLOAT);
 }
 
+bool ValueNode::constant_fold(ShaderOutput * /*socket*/,
+                              float3 *optimized_value)
+{
+	*optimized_value = make_float3(value, value, value);
+	return true;
+}
+
 void ValueNode::compile(SVMCompiler& compiler)
 {
 	ShaderOutput *val_out = output("Value");
@@ -3187,6 +3333,13 @@ ColorNode::ColorNode()
 	value = make_float3(0.0f, 0.0f, 0.0f);
 
 	add_output("Color", SHADER_SOCKET_COLOR);
+}
+
+bool ColorNode::constant_fold(ShaderOutput * /*socket*/,
+                              float3 *optimized_value)
+{
+	*optimized_value = value;
+	return true;
 }
 
 void ColorNode::compile(SVMCompiler& compiler)
@@ -3488,6 +3641,23 @@ GammaNode::GammaNode()
 	add_input("Color", SHADER_SOCKET_COLOR);
 	add_input("Gamma", SHADER_SOCKET_FLOAT);
 	add_output("Color", SHADER_SOCKET_COLOR);
+}
+
+bool GammaNode::constant_fold(ShaderOutput *socket, float3 *optimized_value)
+{
+	ShaderInput *color_in = input("Color");
+	ShaderInput *gamma_in = input("Gamma");
+
+	if(socket == output("Color")) {
+		if(color_in->link == NULL && gamma_in->link == NULL) {
+			*optimized_value = svm_math_gamma_color(color_in->value,
+			                                        gamma_in->value.x);
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void GammaNode::compile(SVMCompiler& compiler)
@@ -3943,6 +4113,21 @@ BlackbodyNode::BlackbodyNode()
 	add_output("Color", SHADER_SOCKET_COLOR);
 }
 
+bool BlackbodyNode::constant_fold(ShaderOutput *socket, float3 *optimized_value)
+{
+	ShaderInput *temperature_in = input("Temperature");
+
+	if(socket == output("Color")) {
+		if(temperature_in->link == NULL) {
+			*optimized_value = svm_math_blackbody_color(temperature_in->value.x);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void BlackbodyNode::compile(SVMCompiler& compiler)
 {
 	ShaderInput *temperature_in = input("Temperature");
@@ -3950,15 +4135,8 @@ void BlackbodyNode::compile(SVMCompiler& compiler)
 
 	compiler.stack_assign(color_out);
 
-	if(temperature_in->link == NULL) {
-		float3 color = svm_math_blackbody_color(temperature_in->value.x);
-		compiler.add_node(NODE_VALUE_V, color_out->stack_offset);
-		compiler.add_node(NODE_VALUE_V, color);
-	}
-	else {
-		compiler.stack_assign(temperature_in);
-		compiler.add_node(NODE_BLACKBODY, temperature_in->stack_offset, color_out->stack_offset);
-	}
+	compiler.stack_assign(temperature_in);
+	compiler.add_node(NODE_BLACKBODY, temperature_in->stack_offset, color_out->stack_offset);
 }
 
 void BlackbodyNode::compile(OSLCompiler& compiler)
@@ -4042,6 +4220,28 @@ static ShaderEnum math_type_init()
 
 ShaderEnum MathNode::type_enum = math_type_init();
 
+bool MathNode::constant_fold(ShaderOutput *socket, float3 *optimized_value)
+{
+	ShaderInput *value1_in = input("Value1");
+	ShaderInput *value2_in = input("Value2");
+
+	if(socket == output("Value")) {
+		if(value1_in->link == NULL && value2_in->link == NULL) {
+			optimized_value->x = svm_math((NodeMath)type_enum[type],
+			                              value1_in->value.x,
+			                              value2_in->value.x);
+
+			if(use_clamp) {
+				optimized_value->x = saturate(optimized_value->x);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void MathNode::compile(SVMCompiler& compiler)
 {
 	ShaderInput *value1_in = input("Value1");
@@ -4049,21 +4249,6 @@ void MathNode::compile(SVMCompiler& compiler)
 	ShaderOutput *value_out = output("Value");
 
 	compiler.stack_assign(value_out);
-
-	/* Optimize math node without links to a single value node. */
-	if(value1_in->link == NULL && value2_in->link == NULL) {
-		float optimized_value = svm_math((NodeMath)type_enum[type],
-		                                 value1_in->value.x,
-		                                 value2_in->value.x);
-		if(use_clamp) {
-			optimized_value = saturate(optimized_value);
-		}
-		compiler.add_node(NODE_VALUE_F,
-		                  __float_as_int(optimized_value),
-		                  value_out->stack_offset);
-		return;
-	}
-
 	compiler.stack_assign(value1_in);
 	compiler.stack_assign(value2_in);
 
@@ -4166,6 +4351,34 @@ static ShaderEnum vector_math_type_init()
 
 ShaderEnum VectorMathNode::type_enum = vector_math_type_init();
 
+bool VectorMathNode::constant_fold(ShaderOutput *socket, float3 *optimized_value)
+{
+	ShaderInput *vector1_in = input("Vector1");
+	ShaderInput *vector2_in = input("Vector2");
+
+	float value;
+	float3 vector;
+
+	if(vector1_in->link == NULL && vector2_in->link == NULL) {
+		svm_vector_math(&value,
+						&vector,
+						(NodeVectorMath)type_enum[type],
+						vector1_in->value,
+						vector2_in->value);
+
+		if(socket == output("Value")) {
+			optimized_value->x = value;
+			return true;
+		}
+		else if(socket == output("Vector")) {
+			*optimized_value = vector;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void VectorMathNode::compile(SVMCompiler& compiler)
 {
 	ShaderInput *vector1_in = input("Vector1");
@@ -4175,25 +4388,6 @@ void VectorMathNode::compile(SVMCompiler& compiler)
 
 	compiler.stack_assign(value_out);
 	compiler.stack_assign(vector_out);
-
-	/* Optimize vector math node without links to a single value node. */
-	if(vector1_in->link == NULL && vector2_in->link == NULL) {
-		float optimized_value;
-		float3 optimized_vector;
-		svm_vector_math(&optimized_value,
-		                &optimized_vector,
-		                (NodeVectorMath)type_enum[type],
-		                vector1_in->value,
-		                vector2_in->value);
-
-		compiler.add_node(NODE_VALUE_F,
-		                  __float_as_int(optimized_value),
-		                  value_out->stack_offset);
-
-		compiler.add_node(NODE_VALUE_V, vector_out->stack_offset);
-		compiler.add_node(NODE_VALUE_V, optimized_vector);
-		return;
-	}
 
 	compiler.stack_assign(vector1_in);
 	compiler.stack_assign(vector2_in);
@@ -4332,6 +4526,9 @@ RGBCurvesNode::RGBCurvesNode()
 	add_input("Fac", SHADER_SOCKET_FLOAT);
 	add_input("Color", SHADER_SOCKET_COLOR);
 	add_output("Color", SHADER_SOCKET_COLOR);
+
+	min_x = 0.0f;
+	max_x = 1.0f;
 }
 
 void RGBCurvesNode::compile(SVMCompiler& compiler)
@@ -4344,7 +4541,12 @@ void RGBCurvesNode::compile(SVMCompiler& compiler)
 	compiler.stack_assign(color_in);
 	compiler.stack_assign(color_out);
 
-	compiler.add_node(NODE_RGB_CURVES, fac_in->stack_offset, color_in->stack_offset, color_out->stack_offset);
+	compiler.add_node(NODE_RGB_CURVES,
+	                  compiler.encode_uchar4(fac_in->stack_offset,
+	                                         color_in->stack_offset,
+	                                         color_out->stack_offset),
+	                  __float_as_int(min_x),
+	                  __float_as_int(max_x));
 	compiler.add_array(curves, RAMP_TABLE_SIZE);
 }
 
@@ -4359,6 +4561,8 @@ void RGBCurvesNode::compile(OSLCompiler& compiler)
 	}
 
 	compiler.parameter_color_array("ramp", ramp, RAMP_TABLE_SIZE);
+	compiler.parameter("min_x", min_x);
+	compiler.parameter("max_x", max_x);
 	compiler.add(this, "node_rgb_curves");
 }
 
@@ -4494,6 +4698,7 @@ void OSLScriptNode::compile(SVMCompiler& /*compiler*/)
 
 void OSLScriptNode::compile(OSLCompiler& compiler)
 {
+#if defined(WITH_OSL) && (OSL_LIBRARY_VERSION_CODE < 10701)
 	/* XXX fix for #36790:
 	 * point and normal parameters are reflected as generic SOCK_VECTOR sockets
 	 * on the node. Socket fixed input values need to be copied explicitly here for
@@ -4513,6 +4718,7 @@ void OSLScriptNode::compile(OSLCompiler& compiler)
 			}
 		}
 	}
+#endif
 
 	if(!filepath.empty())
 		compiler.add(this, filepath.c_str(), true);
