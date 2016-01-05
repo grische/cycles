@@ -216,7 +216,7 @@ public:
 		/* ToDo: We don't bundle sm_52 kernel yet */
 		if(major == 5 && minor == 2) {
 			VLOG(1) << "Using workaround for sm_52 kernel";
-			if(experimental)
+			if(requested_features.experimental)
 				cubin = path_get(string_printf("/kernel_experimental_sm_%d%d.cubin", major, minor));
 			else
 				cubin = path_get(string_printf("/kernel_sm_%d%d.cubin", major, minor));
