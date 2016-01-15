@@ -429,5 +429,48 @@ device_memory& DisplayBuffer::rgba_data()
 		return rgba_byte;
 }
 
+void DisplayBuffer::get_pixels(Device *device, float* pixels)
+{
+	int w = draw_width;
+	int h = draw_height;
+
+	if (w == 0 || h == 0)
+		return;
+
+	if (half_float)
+		return;
+
+	/* read buffer from device */
+	device_memory& rgba = rgba_data();
+	device->pixels_copy_from(rgba, 0, w, h);
+
+	uchar *in = (uchar*)rgba.data_pointer;
+
+	int scw = params.width / w;
+	int sch = params.height / h;
+
+	int tileidx = 0;
+	int fullimgidx = 0;
+	float4 f = make_float4(0.8f, 0.3f, 0.3f, 1.0f);
+	/* Copy pixels to final image buffer. */
+	for (int y = 0; y < draw_height; y++) {
+		for (int x = 0; x < draw_width; x++) {
+			tileidx = y * draw_width * 4 + x * 4;
+			f = make_float4(in[tileidx+0]/255.0f, in[tileidx+1]/255.0f, in[tileidx+2]/255.0f, in[tileidx+3]/255.0f);
+
+			/* scale up pixel if necessary, taking into account final image size*/
+			for (int target_y = y*sch; target_y < min(params.height, (y*sch+sch)); target_y++) {
+				for (int target_x = x*scw; target_x < min(params.width, (x*scw+scw)); target_x++) {
+					fullimgidx = (params.height - target_y - 1) * params.width * 4 + target_x * 4;
+					pixels[fullimgidx + 0] = f.x;
+					pixels[fullimgidx + 1] = f.y;
+					pixels[fullimgidx + 2] = f.z;
+					pixels[fullimgidx + 3] = f.w;
+				}
+			}
+		}
+	}
+}
+
 CCL_NAMESPACE_END
 
