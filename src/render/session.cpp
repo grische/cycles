@@ -185,6 +185,9 @@ bool Session::draw_gpu(BufferParams& buffer_params, DeviceDrawParams& draw_param
 				gpu_need_tonemap_cond.notify_all();
 			}
 
+			// display update callback set, we don't want to draw with OpenGL
+			if (display_update_cb) return false;
+
 			display->draw(device, draw_params);
 
 			if(display_outdated && (time_dt() - reset_time) > params.text_timeout)
@@ -301,7 +304,7 @@ void Session::run_gpu()
 			if(!device->error_message().empty())
 				progress.set_error(device->error_message());
 
-			tiles_written = update_progressive_refine(progress.get_cancel());
+			tiles_written = update_progressive_refine(progress.get_cancel() || display_update_cb!=nullptr);
 
 			if(progress.get_cancel())
 				break;
@@ -339,6 +342,10 @@ bool Session::draw_cpu(BufferParams& buffer_params, DeviceDrawParams& draw_param
 		/* then verify the buffers have the expected size, so we don't
 		 * draw previous results in a resized window */
 		if(!buffer_params.modified(display->params)) {
+
+			// display update callback set, we don't want to draw with OpenGL
+			if (display_update_cb) return false;
+
 			display->draw(device, draw_params);
 
 			if(display_outdated && (time_dt() - reset_time) > params.text_timeout)
@@ -595,7 +602,7 @@ void Session::run_cpu()
 			if(!device->error_message().empty())
 				progress.set_error(device->error_message());
 
-			tiles_written = update_progressive_refine(progress.get_cancel());
+			tiles_written = update_progressive_refine(progress.get_cancel() || display_update_cb!=nullptr);
 		}
 
 		progress.set_update();
@@ -976,6 +983,10 @@ bool Session::update_progressive_refine(bool cancel)
 				if(update_render_tile_cb)
 					update_render_tile_cb(rtile);
 			}
+		}
+		if (display_update_cb)
+		{
+			display_update_cb(sample);
 		}
 	}
 
