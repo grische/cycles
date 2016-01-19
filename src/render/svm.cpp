@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#if(_MSC_VER>=1900L)
+#include <iterator> // needed for std::inserter
+#endif
+
 #include "device.h"
 #include "graph.h"
 #include "light.h"
