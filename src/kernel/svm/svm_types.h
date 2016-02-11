@@ -184,7 +184,8 @@ typedef enum NodeLightPath {
 	NODE_LP_backfacing,
 	NODE_LP_ray_length,
 	NODE_LP_ray_depth,
-	NODE_LP_ray_transparent
+	NODE_LP_ray_transparent,
+	NODE_LP_ray_transmission,
 } NodeLightPath;
 
 typedef enum NodeLightFalloff {
@@ -311,6 +312,11 @@ typedef enum NodeWaveType {
 	NODE_WAVE_RINGS
 } NodeWaveType;
 
+typedef enum NodeWaveProfiles {
+	NODE_WAVE_PROFILE_SIN,
+	NODE_WAVE_PROFILE_SAW,
+} NodeWaveProfile;
+
 typedef enum NodeSkyType {
 	NODE_SKY_OLD,
 	NODE_SKY_NEW
@@ -422,6 +428,7 @@ typedef enum ClosureType {
 	/* BSSRDF */
 	CLOSURE_BSSRDF_CUBIC_ID,
 	CLOSURE_BSSRDF_GAUSSIAN_ID,
+	CLOSURE_BSSRDF_BURLEY_ID,
 
 	/* Other */
 	CLOSURE_EMISSION_ID,
@@ -444,8 +451,8 @@ typedef enum ClosureType {
 #define CLOSURE_IS_BSDF_TRANSMISSION(type) (type >= CLOSURE_BSDF_TRANSMISSION_ID && type <= CLOSURE_BSDF_HAIR_TRANSMISSION_ID)
 #define CLOSURE_IS_BSDF_BSSRDF(type) (type == CLOSURE_BSDF_BSSRDF_ID)
 #define CLOSURE_IS_BSDF_ANISOTROPIC(type) (type >= CLOSURE_BSDF_MICROFACET_GGX_ANISO_ID && type <= CLOSURE_BSDF_ASHIKHMIN_SHIRLEY_ANISO_ID)
-#define CLOSURE_IS_BSDF_OR_BSSRDF(type) (type <= CLOSURE_BSSRDF_GAUSSIAN_ID)
-#define CLOSURE_IS_BSSRDF(type) (type >= CLOSURE_BSSRDF_CUBIC_ID && type <= CLOSURE_BSSRDF_GAUSSIAN_ID)
+#define CLOSURE_IS_BSDF_OR_BSSRDF(type) (type <= CLOSURE_BSSRDF_BURLEY_ID)
+#define CLOSURE_IS_BSSRDF(type) (type >= CLOSURE_BSSRDF_CUBIC_ID && type <= CLOSURE_BSSRDF_BURLEY_ID)
 #define CLOSURE_IS_VOLUME(type) (type >= CLOSURE_VOLUME_ID && type <= CLOSURE_VOLUME_HENYEY_GREENSTEIN_ID)
 #define CLOSURE_IS_EMISSION(type) (type == CLOSURE_EMISSION_ID)
 #define CLOSURE_IS_HOLDOUT(type) (type == CLOSURE_HOLDOUT_ID)

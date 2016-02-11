@@ -23,7 +23,13 @@
 
 #include "buffers.h"
 
-#include "cuew.h"
+#ifdef WITH_CUDA_DYNLOAD
+#  include "cuew.h"
+#else
+#  include "util_opengl.h"
+#  include <cuda.h>
+#  include <cudaGL.h>
+#endif
 #include "util_debug.h"
 #include "util_logging.h"
 #include "util_map.h"
@@ -41,6 +47,40 @@
 /* #define KERNEL_USE_ADAPTIVE */
 
 CCL_NAMESPACE_BEGIN
+
+#ifndef WITH_CUDA_DYNLOAD
+
+/* Transparently implement some functions, so majority of the file does not need
+ * to worry about difference between dynamically loaded and linked CUDA at all.
+ */
+
+namespace {
+
+const char *cuewErrorString(CUresult result)
+{
+	/* We can only give error code here without major code duplication, that
+	 * should be enough since dynamic loading is only being disabled by folks
+	 * who knows what they're doing anyway.
+	 *
+	 * NOTE: Avoid call from several threads.
+	 */
+	static string error;
+	error = string_printf("%d", result);
+	return error.c_str();
+}
+
+const char *cuewCompilerPath(void)
+{
+	return CYCLES_CUDA_NVCC_EXECUTABLE;
+}
+
+int cuewCompilerVersion(void)
+{
+	return (CUDA_VERSION / 100) + (CUDA_VERSION % 100 / 10);
+}
+
+}  /* namespace */
+#endif  /* WITH_CUDA_DYNLOAD */
 
 class CUDADevice : public Device
 {
@@ -210,32 +250,10 @@ public:
 		/* compute cubin name */
 		int major, minor;
 		cuDeviceComputeCapability(&major, &minor, cuDevId);
-		
 		string cubin;
 
-		/* ToDo: We don't bundle sm_52 kernel yet */
-		if(major == 5 && minor == 2) {
-			VLOG(1) << "Using workaround for sm_52 kernel";
-			if(requested_features.experimental)
-				cubin = path_get(string_printf("/kernel_experimental_sm_%d%d.cubin", major, minor));
-			else
-				cubin = path_get(string_printf("/kernel_sm_%d%d.cubin", major, minor));
-
-			if(path_exists(cubin)) {
-				VLOG(1) << "Using self-built sm_52 kernel " << cubin;
-				return cubin;
-			}
-			else {
-				VLOG(1) << "Compiling sm_50 instead of sm_52 as workaround";
-				minor = 0;
-			}
-		}
-
 		/* attempt to use kernel provided with blender */
-		if(requested_features.experimental)
-			cubin = path_get(string_printf("lib/kernel_experimental_sm_%d%d.cubin", major, minor));
-		else
-			cubin = path_get(string_printf("lib/kernel_sm_%d%d.cubin", major, minor));
+		cubin = path_get(string_printf("lib/kernel_sm_%d%d.cubin", major, minor));
 		VLOG(1) << "Testing for pre-compiled kernel " << cubin;
 		if(path_exists(cubin)) {
 			VLOG(1) << "Using precompiled kernel";
@@ -254,10 +272,8 @@ public:
 		                      major, minor,
 		                      md5.c_str());
 #else
-		if(requested_features.experimental)
-			cubin = string_printf("cycles_kernel_experimental_sm%d%d_%s.cubin", major, minor, md5.c_str());
-		else
-			cubin = string_printf("cycles_kernel_sm%d%d_%s.cubin", major, minor, md5.c_str());
+		(void)requested_features;
+		cubin = string_printf("cycles_kernel_sm%d%d_%s.cubin", major, minor, md5.c_str());
 #endif
 
 		cubin = path_user_get(path_join("cache", cubin));
@@ -317,10 +333,6 @@ public:
 
 #ifdef KERNEL_USE_ADAPTIVE
 		command += " " + feature_build_options;
-#else
-		if(requested_features.experimental) {
-			command += " -D__KERNEL_EXPERIMENTAL__";
-		}
 #endif
 
 		const char* extra_cflags = getenv("CYCLES_CUDA_EXTRA_CFLAGS");
@@ -645,14 +657,14 @@ public:
 
 		/* pass in parameters */
 		void *args[] = {&d_buffer,
-						 &d_rng_state,
-						 &sample,
-						 &rtile.x,
-						 &rtile.y,
-						 &rtile.w,
-						 &rtile.h,
-						 &rtile.offset,
-						 &rtile.stride};
+		                &d_rng_state,
+		                &sample,
+		                &rtile.x,
+		                &rtile.y,
+		                &rtile.w,
+		                &rtile.h,
+		                &rtile.offset,
+		                &rtile.stride};
 
 		/* launch kernel */
 		int threads_per_block;
@@ -672,9 +684,9 @@ public:
 		cuda_assert(cuFuncSetCacheConfig(cuPathTrace, CU_FUNC_CACHE_PREFER_L1));
 
 		cuda_assert(cuLaunchKernel(cuPathTrace,
-								   xblocks , yblocks, 1, /* blocks */
-								   xthreads, ythreads, 1, /* threads */
-								   0, 0, args, 0));
+		                           xblocks , yblocks, 1, /* blocks */
+		                           xthreads, ythreads, 1, /* threads */
+		                           0, 0, args, 0));
 
 		cuda_assert(cuCtxSynchronize());
 
@@ -705,15 +717,15 @@ public:
 
 		/* pass in parameters */
 		void *args[] = {&d_rgba,
-						 &d_buffer,
-						 &sample_scale,
-						 &task.x,
-						 &task.y,
-						 &task.w,
-						 &task.h,
-						 &task.offset,
-						 &task.stride,
-						 &task.skip_linear_to_srgb_conversion};
+		                &d_buffer,
+		                &sample_scale,
+		                &task.x,
+		                &task.y,
+		                &task.w,
+		                &task.h,
+		                &task.offset,
+		                &task.stride,
+		                &task.skip_linear_to_srgb_conversion};
 
 		/* launch kernel */
 		int threads_per_block;
@@ -727,9 +739,9 @@ public:
 		cuda_assert(cuFuncSetCacheConfig(cuFilmConvert, CU_FUNC_CACHE_PREFER_L1));
 
 		cuda_assert(cuLaunchKernel(cuFilmConvert,
-								   xblocks , yblocks, 1, /* blocks */
-								   xthreads, ythreads, 1, /* threads */
-								   0, 0, args, 0));
+		                           xblocks , yblocks, 1, /* blocks */
+		                           xthreads, ythreads, 1, /* threads */
+		                           0, 0, args, 0));
 
 		unmap_pixels((rgba_byte)? rgba_byte: rgba_half);
 
@@ -746,6 +758,7 @@ public:
 		CUfunction cuShader;
 		CUdeviceptr d_input = cuda_device_ptr(task.shader_input);
 		CUdeviceptr d_output = cuda_device_ptr(task.shader_output);
+		CUdeviceptr d_output_luma = cuda_device_ptr(task.shader_output_luma);
 
 		/* get kernel function */
 		if(task.shader_eval_type >= SHADER_EVAL_BAKE) {
@@ -767,13 +780,21 @@ public:
 				int shader_w = min(shader_chunk_size, end - shader_x);
 
 				/* pass in parameters */
-				void *args[] = {&d_input,
-								 &d_output,
-								 &task.shader_eval_type,
-								 &shader_x,
-								 &shader_w,
-								 &offset,
-								 &sample};
+				void *args[8];
+				int arg = 0;
+				args[arg++] = &d_input;
+				args[arg++] = &d_output;
+				if(task.shader_eval_type < SHADER_EVAL_BAKE) {
+					args[arg++] = &d_output_luma;
+				}
+				args[arg++] = &task.shader_eval_type;
+				if(task.shader_eval_type >= SHADER_EVAL_BAKE) {
+					args[arg++] = &task.shader_filter;
+				}
+				args[arg++] = &shader_x;
+				args[arg++] = &shader_w;
+				args[arg++] = &offset;
+				args[arg++] = &sample;
 
 				/* launch kernel */
 				int threads_per_block;
@@ -783,9 +804,9 @@ public:
 
 				cuda_assert(cuFuncSetCacheConfig(cuShader, CU_FUNC_CACHE_PREFER_L1));
 				cuda_assert(cuLaunchKernel(cuShader,
-										   xblocks , 1, 1, /* blocks */
-										   threads_per_block, 1, 1, /* threads */
-										   0, 0, args, 0));
+				                           xblocks , 1, 1, /* blocks */
+				                           threads_per_block, 1, 1, /* threads */
+				                           0, 0, args, 0));
 
 				cuda_assert(cuCtxSynchronize());
 
@@ -1114,6 +1135,7 @@ public:
 
 bool device_cuda_init(void)
 {
+#ifdef WITH_CUDA_DYNLOAD
 	static bool initialized = false;
 	static bool result = false;
 
@@ -1147,6 +1169,9 @@ bool device_cuda_init(void)
 	}
 
 	return result;
+#else  /* WITH_CUDA_DYNLOAD */
+	return true;
+#endif /* WITH_CUDA_DYNLOAD */
 }
 
 Device *device_cuda_create(DeviceInfo& info, Stats &stats, bool background)
