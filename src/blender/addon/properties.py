@@ -894,6 +894,11 @@ class CyclesVisibilitySettings(bpy.types.PropertyGroup):
                 description="Object visibility for shadow rays",
                 default=True,
                 )
+        cls.shadow_self = BoolProperty(
+                name="Self Shadow",
+                description="Object visibility for shadow rays cast from itself",
+                default=True,
+                )
         cls.scatter = BoolProperty(
                 name="Volume Scatter",
                 description="Object visibility for volume scatter rays",
@@ -983,6 +988,12 @@ class CyclesObjectBlurSettings(bpy.types.PropertyGroup):
         cls.use_camera_cull = BoolProperty(
                 name="Use Camera Cull",
                 description="Allow this object and its duplicators to be culled by camera space culling",
+                default=False,
+                )
+
+        cls.is_shadow_catcher = BoolProperty(
+                name="Shadow Catcher",
+                description="This object is only catching shadows",
                 default=False,
                 )
 

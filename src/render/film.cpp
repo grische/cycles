@@ -20,6 +20,7 @@
 #include "integrator.h"
 #include "mesh.h"
 #include "scene.h"
+#include "object.h"
 #include "tables.h"
 
 #include "util_algorithm.h"
@@ -300,7 +301,9 @@ void Film::device_update(Device *device, DeviceScene *dscene, Scene *scene)
 	kfilm->exposure = exposure;
 	kfilm->pass_flag = 0;
 	kfilm->pass_stride = 0;
-	kfilm->use_light_pass = use_light_visibility || use_sample_clamp;
+	kfilm->use_light_pass = use_light_visibility ||
+	                        use_sample_clamp ||
+	                        scene->object_manager->has_shadow_catcher;
 
 	foreach(Pass& pass, passes) {
 		kfilm->pass_flag |= pass.type;

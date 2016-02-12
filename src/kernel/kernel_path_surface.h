@@ -59,7 +59,7 @@ ccl_device void kernel_branched_path_surface_connect_light(KernelGlobals *kg, RN
 					/* trace shadow ray */
 					float3 shadow;
 
-					if(!shadow_blocked(kg, state, &light_ray, &shadow)) {
+					if(!shadow_blocked(kg, sd, state, &light_ray, &shadow)) {
 						/* accumulate */
 						path_radiance_accum_light(L, throughput*num_samples_inv, &L_light, shadow, num_samples_inv, state->bounce, is_lamp);
 					}
@@ -91,7 +91,7 @@ ccl_device void kernel_branched_path_surface_connect_light(KernelGlobals *kg, RN
 					/* trace shadow ray */
 					float3 shadow;
 
-					if(!shadow_blocked(kg, state, &light_ray, &shadow)) {
+					if(!shadow_blocked(kg, sd, state, &light_ray, &shadow)) {
 						/* accumulate */
 						path_radiance_accum_light(L, throughput*num_samples_inv, &L_light, shadow, num_samples_inv, state->bounce, is_lamp);
 					}
@@ -113,7 +113,7 @@ ccl_device void kernel_branched_path_surface_connect_light(KernelGlobals *kg, RN
 			/* trace shadow ray */
 			float3 shadow;
 
-			if(!shadow_blocked(kg, state, &light_ray, &shadow)) {
+			if(!shadow_blocked(kg, sd, state, &light_ray, &shadow)) {
 				/* accumulate */
 				path_radiance_accum_light(L, throughput*num_samples_adjust, &L_light, shadow, num_samples_adjust, state->bounce, is_lamp);
 			}
@@ -210,12 +210,30 @@ ccl_device_inline void kernel_path_surface_connect_light(KernelGlobals *kg, ccl_
 		/* trace shadow ray */
 		float3 shadow;
 
-		if(!shadow_blocked(kg, state, &light_ray, &shadow)) {
+		if(!shadow_blocked(kg, sd, state, &light_ray, &shadow)) {
 			/* accumulate */
 			path_radiance_accum_light(L, throughput, &L_light, shadow, 1.0f, state->bounce, is_lamp);
 		}
 	}
-#endif
+#  ifdef __SHADOW_TRICKS__
+	else if(state->bounce == 0) {
+		/* This is a weak, but without this things are even weaker: light which
+		 * is fully invisible to the object will make it so shadow pass scale is
+		 * lower and even if the object is fully illuminated by other light it's
+		 * shadow pass will never contain values of 1.0. This way we're trying to
+		 * eliminate effect of unreachable light.
+		 *
+		 * TODO(sergey): Might want to do it for shadow catching only, so there's
+		 * no regression in behavior for other cases.
+		 */
+		if(ls.prim == PRIM_NONE && ls.type != LIGHT_BACKGROUND) {
+			L->shadow.x += 1.0f;
+			L->shadow.y += 1.0f;
+			L->shadow.z += 1.0f;
+		}
+	}
+#  endif  /* __SHADOW_TRICKS__ */
+#endif  /* __EMISSION__ */
 }
 #endif
 

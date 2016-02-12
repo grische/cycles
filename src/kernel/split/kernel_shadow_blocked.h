@@ -69,8 +69,10 @@ ccl_device void kernel_shadow_blocked(
 		                ? light_ray_ao_global
 		                : light_ray_dl_global;
 
+		/* TODO(sergey): Support self shadows visibility here. */
 		float3 shadow;
 		update_path_radiance = !(shadow_blocked(kg,
+		                                        NULL,
 		                                        state,
 		                                        light_ray_global,
 		                                        &shadow));

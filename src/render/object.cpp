@@ -49,6 +49,8 @@ Object::Object()
 	motion.post = transform_identity();
 	use_motion = false;
 	use_holdout = false;
+	use_self_shadows = true;
+	is_shadow_catcher = false;
 	dupli_generated = make_float3(0.0f, 0.0f, 0.0f);
 	dupli_uv = make_float2(0.0f, 0.0f);
 }
@@ -225,6 +227,7 @@ ObjectManager::ObjectManager()
 {
 	need_update = true;
 	need_flags_update = true;
+	has_shadow_catcher = false;
 }
 
 ObjectManager::~ObjectManager()
@@ -358,6 +361,8 @@ void ObjectManager::device_update_transforms(Device *device, DeviceScene *dscene
 		/* object flag */
 		if(ob->use_holdout)
 			flag |= SD_HOLDOUT_MASK;
+		if(ob->use_self_shadows)
+			flag |= SD_OBJECT_USE_SELF_SHADOWS;
 		object_flag[i] = flag;
 
 		/* have curves */
@@ -418,6 +423,7 @@ void ObjectManager::device_update_flags(Device *device,
 
 	need_update = false;
 	need_flags_update = false;
+	has_shadow_catcher = false;
 
 	if(scene->objects.size() == 0)
 		return;
@@ -443,6 +449,16 @@ void ObjectManager::device_update_flags(Device *device,
 		}
 		else {
 			object_flag[object_index] &= ~SD_OBJECT_HAS_VOLUME;
+		}
+		if(object->is_shadow_catcher) {
+			object_flag[object_index] |= SD_OBJECT_SHADOW_CATCHER;
+			has_shadow_catcher = true;
+		}
+		else {
+			/* TODO(sergey): Wouldn't it be simplier to just zero object_flag
+			 * out before the loop?
+			 */
+			object_flag[object_index] &= ~SD_OBJECT_SHADOW_CATCHER;
 		}
 
 		if(bounds_valid) {

@@ -385,6 +385,24 @@ Object *BlenderSync::sync_object(BL::Object& b_parent,
 		object_updated = true;
 	}
 
+	PointerRNA cobject = RNA_pointer_get(&b_ob.ptr, "cycles");
+	bool is_shadow_catcher = get_boolean(cobject, "is_shadow_catcher");
+	if(is_shadow_catcher != object->is_shadow_catcher) {
+		object->is_shadow_catcher = is_shadow_catcher;
+		object_updated = true;
+	}
+
+	/* TODO(sergey): The `shadow_self` is only exposed to the interface due to
+	 * historical reasons (earlier experiment patches). It should be done all
+	 * purely in the kernel, since self-shadow is not really well-defined.
+	 */
+	PointerRNA cvisibility = RNA_pointer_get(&b_ob.ptr, "cycles_visibility");
+	bool use_self_shadows = get_boolean(cvisibility, "shadow_self") && !is_shadow_catcher;
+	if(use_self_shadows != object->use_self_shadows) {
+		object->use_self_shadows = use_self_shadows;
+		object_updated = true;
+	}
+
 	/* object sync
 	 * transform comparison should not be needed, but duplis don't work perfect
 	 * in the depsgraph and may not signal changes, so this is a workaround */

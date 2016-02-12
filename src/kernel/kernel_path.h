@@ -328,7 +328,7 @@ ccl_device void kernel_path_indirect(KernelGlobals *kg,
 				light_ray.dP = sd.dP;
 				light_ray.dD = differential3_zero();
 
-				if(!shadow_blocked(kg, state, &light_ray, &ao_shadow)) {
+				if(!shadow_blocked(kg, &sd, state, &light_ray, &ao_shadow)) {
 					path_radiance_accum_ao(L,
 					                       throughput,
 					                       ao_alpha,
@@ -425,7 +425,7 @@ ccl_device_noinline void kernel_path_ao(KernelGlobals *kg,
 		light_ray.dP = ccl_fetch(sd, dP);
 		light_ray.dD = differential3_zero();
 
-		if(!shadow_blocked(kg, state, &light_ray, &ao_shadow))
+		if(!shadow_blocked(kg, sd, state, &light_ray, &ao_shadow))
 			path_radiance_accum_ao(L, throughput, ao_alpha, ao_bsdf, ao_shadow, state->bounce);
 	}
 }
@@ -601,11 +601,24 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 	PathRadiance L;
 	float3 throughput = make_float3(1.0f, 1.0f, 1.0f);
 	float L_transparent = 0.0f;
+	float3 L_background = make_float3(0.0f, 0.0f, 0.0f);
 
 	path_radiance_init(&L, kernel_data.film.use_light_pass);
 
 	PathState state;
 	path_state_init(kg, &state, rng, sample, &ray);
+
+#ifdef __SHADOW_TRICKS__
+	/* This flag denotes whether the path met shadow catcher and special math
+	 * is to be involved in combined pass calculation. With shadow catching we're
+	 * trying to re-construct received shadow on the catcher object and set
+	 * combined pass transparency according to strength of the shadow. We also
+	 * ignoring all shadow catching flags if secondary ray hits the catcher.
+	 * This way catcher could be reflected in an artificial object which are
+	 * put into the scene.
+	 */
+	bool shadow_catched = false;
+#endif  /* __SHADOW_TRICKS__ */
 
 #ifdef __KERNEL_DEBUG__
 	DebugData debug_data;
@@ -772,7 +785,7 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 
 #ifdef __BACKGROUND__
 			/* sample background shader */
-			float3 L_background = indirect_background(kg, &state, &ray);
+			L_background = indirect_background(kg, &state, &ray);
 			path_radiance_accum_background(&L, throughput, L_background, state.bounce);
 #endif
 
@@ -804,6 +817,24 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 				break;
 		}
 #endif
+
+#ifdef __SHADOW_TRICKS__
+		/* A bit tricky logic here, but basically we only considering first
+		 * camera ray hit as a possible shadow catcher object. If the ray travels
+		 * further (either transparent or reflected) we ignore the catcher flag
+		 * of the object. This way we've got nice reflections of the catcher
+		 * object in another objects from the scene.
+		 */
+		if((sd.flag & SD_OBJECT_SHADOW_CATCHER) != 0 &&
+		   ((state.flag & PATH_RAY_CAMERA) != 0) &&
+		   (state.transparent_bounce == 0))
+		{
+			shadow_catched = true;
+		}
+		else if(((state.flag & PATH_RAY_CAMERA) != 0)) {
+			shadow_catched = false;
+		}
+#endif  /* __SHADOW_TRICKS__ */
 
 		/* holdout mask objects do not write data passes */
 		kernel_write_data_passes(kg, buffer, &L, &sd, sample, &state, throughput);
@@ -898,7 +929,41 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 	}
 #endif  /* __SUBSURFACE__ */
 
+#ifdef __SHADOW_TRICKS__
+	/* If camera ray hits a background, assume there's no shadow at all.
+	 * Useful for compositing anyway.
+	 */
+	if(state.flag & PATH_RAY_CAMERA) {
+		L.shadow = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+#endif  /* __SHADOW_TRICKS__ */
+
 	float3 L_sum = path_radiance_clamp_and_sum(kg, &L);
+
+#ifdef __SHADOW_TRICKS__
+	/* Special handling of shadow catcher, trying to reconstruct proper received
+	 * shadow from a separate passes. Not fully scientific, but seems we can make
+	 * it good enough for artists without huge hassles with de-referred
+	 * rendering.
+	 *
+	 * The idea is following: L.shadow contains shadow occlusion of direct light,
+	 * which we then reduce by the background emission, received indirect light
+	 * and ambient occlusion to make shadows softer. Issue is that we don't know
+	 * relative scale of the light contribution, for example shadow is kind of
+	 * normalized from 0..1, so is AO but indirect light is somewhat correct
+	 * scale, so might need to tweak some coefficients here.
+	 */
+	if(shadow_catched) {
+		float shadow = average(float4_to_float3(L.shadow));
+		float L_indirect = average(L.indirect);
+		if(kernel_data.background.ao_factor != 0.0f) {
+			float L_ao = average(L.ao);
+			shadow = saturate(shadow + L_ao);
+		}
+		L_transparent = saturate(shadow + L_indirect + average(L_background));
+		L_sum = make_float3(0.0f, 0.0f, 0.0f);
+	}
+#endif  /* __SHADOW_TRICKS__ */
 
 	kernel_write_light_passes(kg, buffer, &L, sample);
 

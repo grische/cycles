@@ -29,6 +29,7 @@
 
 ccl_device bool BVH_FUNCTION_FULL_NAME(QBVH)(KernelGlobals *kg,
                                              const Ray *ray,
+                                             const int skip_object,
                                              Intersection *isect_array,
                                              const uint max_hits,
                                              uint *num_hits)
@@ -239,30 +240,73 @@ ccl_device bool BVH_FUNCTION_FULL_NAME(QBVH)(KernelGlobals *kg,
 						 * isect unless needed and check SD_HAS_TRANSPARENT_SHADOW?
 						 * might give a few % performance improvement */
 
-						switch(p_type) {
-							case PRIMITIVE_TRIANGLE: {
-								hit = triangle_intersect(kg, &isect_precalc, isect_array, P, PATH_RAY_SHADOW, object, primAddr);
-								break;
-							}
+#ifdef __SHADOW_TRICKS__
+						uint tri_object = (object == OBJECT_NONE)? kernel_tex_fetch(__prim_object, primAddr): object;
+						if(tri_object == skip_object) {
+							hit = false;
+						}
+						else
+#endif
+						{
+							switch(p_type) {
+								case PRIMITIVE_TRIANGLE: {
+									hit = triangle_intersect(kg,
+									                         &isect_precalc,
+									                         isect_array,
+									                         P,
+									                         PATH_RAY_SHADOW,
+									                         object,
+									                         primAddr);
+									break;
+								}
 #if BVH_FEATURE(BVH_MOTION)
-							case PRIMITIVE_MOTION_TRIANGLE: {
-								hit = motion_triangle_intersect(kg, isect_array, P, dir, ray->time, PATH_RAY_SHADOW, object, primAddr);
-								break;
-							}
+								case PRIMITIVE_MOTION_TRIANGLE: {
+									hit = motion_triangle_intersect(kg,
+									                                isect_array,
+									                                P,
+									                                dir,
+									                                ray->time,
+									                                PATH_RAY_SHADOW,
+									                                object,
+									                                primAddr);
+									break;
+								}
 #endif
 #if BVH_FEATURE(BVH_HAIR)
-							case PRIMITIVE_CURVE:
-							case PRIMITIVE_MOTION_CURVE: {
-								if(kernel_data.curve.curveflags & CURVE_KN_INTERPOLATE) 
-									hit = bvh_cardinal_curve_intersect(kg, isect_array, P, dir, PATH_RAY_SHADOW, object, primAddr, ray->time, type, NULL, 0, 0);
-								else
-									hit = bvh_curve_intersect(kg, isect_array, P, dir, PATH_RAY_SHADOW, object, primAddr, ray->time, type, NULL, 0, 0);
-								break;
-							}
+								case PRIMITIVE_CURVE:
+								case PRIMITIVE_MOTION_CURVE: {
+									if(kernel_data.curve.curveflags & CURVE_KN_INTERPOLATE) {
+										hit = bvh_cardinal_curve_intersect(kg,
+										                                   isect_array,
+										                                   P,
+										                                   dir,
+										                                   PATH_RAY_SHADOW,
+										                                   object, primAddr,
+										                                   ray->time,
+										                                   type,
+										                                   NULL,
+										                                   0, 0);
+									}
+									else {
+										hit = bvh_curve_intersect(kg,
+										                         isect_array,
+										                          P,
+										                          dir,
+										                          PATH_RAY_SHADOW,
+										                          object,
+										                          primAddr,
+										                          ray->time,
+										                          type,
+										                          NULL,
+										                          0, 0);
+									}
+									break;
+								}
 #endif
-							default: {
-								hit = false;
-								break;
+								default: {
+									hit = false;
+									break;
+								}
 							}
 						}
 

@@ -150,6 +150,7 @@ CCL_NAMESPACE_BEGIN
 #define __CAMERA_CLIPPING__
 #define __INTERSECTION_REFINE__
 #define __CLAMP_SAMPLE__
+#define __SHADOW_TRICKS__
 
 #ifdef __KERNEL_SHADING__
 #define __SVM__
@@ -716,10 +717,13 @@ enum ShaderDataFlag {
 	SD_OBJECT_HAS_VOLUME        = (1 << 24),  /* object has a volume shader */
 	SD_OBJECT_INTERSECTS_VOLUME = (1 << 25),  /* object intersects AABB of an object with volume shader */
 	SD_OBJECT_HAS_VERTEX_MOTION = (1 << 26),  /* has position for motion vertices */
+	SD_OBJECT_SHADOW_CATCHER    = (1 << 27),  /* object is used to catch shadows */
+	SD_OBJECT_USE_SELF_SHADOWS  = (1 << 28),  /* object casts shadows on itself */
 
 	SD_OBJECT_FLAGS = (SD_HOLDOUT_MASK|SD_OBJECT_MOTION|SD_TRANSFORM_APPLIED|
 	                   SD_NEGATIVE_SCALE_APPLIED|SD_OBJECT_HAS_VOLUME|
-	                   SD_OBJECT_INTERSECTS_VOLUME)
+	                   SD_OBJECT_INTERSECTS_VOLUME|SD_OBJECT_SHADOW_CATCHER|
+	                   SD_OBJECT_USE_SELF_SHADOWS)
 };
 
 struct KernelGlobals;

@@ -47,6 +47,8 @@ public:
 	MotionTransform motion;
 	bool use_motion;
 	bool use_holdout;
+	bool use_self_shadows;
+	bool is_shadow_catcher;
 
 	float3 dupli_generated;
 	float2 dupli_uv;
@@ -71,6 +73,8 @@ class ObjectManager {
 public:
 	bool need_update;
 	bool need_flags_update;
+
+	bool has_shadow_catcher;
 
 	ObjectManager();
 	~ObjectManager();

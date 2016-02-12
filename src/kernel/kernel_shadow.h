@@ -41,16 +41,34 @@ CCL_NAMESPACE_BEGIN
 
 #define STACK_MAX_HITS 64
 
-ccl_device_inline bool shadow_blocked(KernelGlobals *kg, PathState *state, Ray *ray, float3 *shadow)
+ccl_device_inline bool shadow_blocked(KernelGlobals *kg,
+                                      ShaderData *sd,
+                                      PathState *state,
+                                      Ray *ray,
+                                      float3 *shadow)
 {
 	*shadow = make_float3(1.0f, 1.0f, 1.0f);
 
 	if(ray->t == 0.0f)
 		return false;
-	
+#ifdef __SHADOW_TRICKS__
+	int object_flag = ccl_fetch(sd, flag);
+	int skip_object = ((object_flag & SD_OBJECT_USE_SELF_SHADOWS) != 0)
+	                      ? OBJECT_NONE
+	                      : ccl_fetch(sd, object);
+#endif
 	bool blocked;
 
-	if(kernel_data.integrator.transparent_shadows) {
+	/* Currently we need full shadow ray traversal in the case of disabled
+	 * self-shadowing. This is so we don't record opaque intersection with
+	 * self.
+	 */
+	if(kernel_data.integrator.transparent_shadows
+#ifdef __SHADOW_TRICKS__
+	   || skip_object != OBJECT_NONE
+#endif
+	  )
+	{
 		/* check transparent bounces here, for volume scatter which can do
 		 * lighting before surface path termination is checked */
 		if(state->transparent_bounce >= kernel_data.integrator.transparent_max_bounce)
@@ -69,7 +87,7 @@ ccl_device_inline bool shadow_blocked(KernelGlobals *kg, PathState *state, Ray *
 			hits = (Intersection*)malloc(sizeof(Intersection)*(max_hits + 1));
 
 		uint num_hits;
-		blocked = scene_intersect_shadow_all(kg, ray, hits, max_hits, &num_hits);
+		blocked = scene_intersect_shadow_all(kg, ray, skip_object, hits, max_hits, &num_hits);
 
 		/* if no opaque surface found but we did find transparent hits, shade them */
 		if(!blocked && num_hits > 0) {
@@ -184,6 +202,7 @@ ccl_device_inline bool shadow_blocked(KernelGlobals *kg, PathState *state, Ray *
  * one extra ray cast for the cases were we do want transparency. */
 
 ccl_device_noinline bool shadow_blocked(KernelGlobals *kg,
+                                        ShaderData *sd,
                                         ccl_addr_space PathState *state,
                                         ccl_addr_space Ray *ray_input,
                                         float3 *shadow)
@@ -207,11 +226,38 @@ ccl_device_noinline bool shadow_blocked(KernelGlobals *kg,
 	Intersection *isect = &isect_object;
 #endif
 
-	bool blocked = scene_intersect(kg, ray, PATH_RAY_SHADOW_OPAQUE, isect, NULL, 0.0f, 0.0f);
+	bool blocked;
+#ifdef __SHADOW_TRICKS__
+	int object_flag = sd != NULL ? ccl_fetch(sd, flag) : SD_OBJECT_USE_SELF_SHADOWS;
+	int skip_object = ((object_flag & SD_OBJECT_USE_SELF_SHADOWS) != 0)
+	                      ? OBJECT_NONE
+	                      : ccl_fetch(sd, object);
+	if(skip_object != OBJECT_NONE) {
+		/* Currently we need full shadow ray traversal in the case of disabled
+		 * self-shadowing. This is so we don't record opaque intersection with
+		 * self.
+		 */
+		blocked = false;
+	}
+	else
+#endif
+	{
+		blocked = scene_intersect(kg,
+		                          ray,
+		                          PATH_RAY_SHADOW_OPAQUE,
+		                          isect,
+		                          NULL,
+		                          0.0f, 0.0f);
+	}
 
 #ifdef __TRANSPARENT_SHADOWS__
-	if(blocked && kernel_data.integrator.transparent_shadows) {
-		if(shader_transparent_shadow(kg, isect)) {
+	if((blocked && kernel_data.integrator.transparent_shadows)
+#ifdef __SHADOW_TRICKS__
+	   || (skip_object != OBJECT_NONE)
+#endif
+	  )
+	{
+		if(skip_object != OBJECT_NONE || shader_transparent_shadow(kg, isect)) {
 			float3 throughput = make_float3(1.0f, 1.0f, 1.0f);
 			float3 Pend = ray->P + ray->D*ray->t;
 			int bounce = state->transparent_bounce;
@@ -236,8 +282,33 @@ ccl_device_noinline bool shadow_blocked(KernelGlobals *kg,
 					return false;
 				}
 
-				if(!shader_transparent_shadow(kg, isect))
+#ifdef __SHADOW_TRICKS__
+				if(skip_object != OBJECT_NONE) {
+					int isect_object = (isect->object == PRIM_NONE)? kernel_tex_fetch(__prim_object, isect->prim): isect->object;
+					if(isect_object == skip_object) {
+						/* TODO(sergey): De-duplicate with the code below. */
+#ifdef __SPLIT_KERNEL__
+						ShaderData *sd = sd_mem;
+#else
+						ShaderData sd_object;
+						ShaderData *sd = &sd_object;
+#endif
+						shader_setup_from_ray(kg, sd, isect, ray, state->bounce+1, bounce);
+						ray->P = ray_offset(ccl_fetch(sd, P), -ccl_fetch(sd, Ng));
+						if(ray->t != FLT_MAX) {
+							ray->D = normalize_len(Pend - ray->P, &ray->t);
+						}
+						continue;
+					}
+				}
+#endif
+
+				if(!shader_transparent_shadow(kg, isect)) {
+#ifdef __SHADOW_TRICKS__
+					blocked = true;
+#endif
 					return true;
+				}
 
 #ifdef __VOLUME__
 				/* attenuation between last surface and next surface */
