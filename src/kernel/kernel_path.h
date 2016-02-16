@@ -602,6 +602,7 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 	float3 throughput = make_float3(1.0f, 1.0f, 1.0f);
 	float L_transparent = 0.0f;
 	float3 L_background = make_float3(0.0f, 0.0f, 0.0f);
+	float3 L_background_sc = make_float3(0.0f, 0.0f, 0.0f);
 
 	path_radiance_init(&L, kernel_data.film.use_light_pass);
 
@@ -903,29 +904,19 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 
 		/* direct lighting */
 		kernel_path_surface_connect_light(kg, rng, &sd, throughput, &state, &L);
+
 #ifdef __SHADOW_TRICKS__
-		if (shadow_catched) {
-			/* eval background shader if nothing hit */
-#if 0
-			if (kernel_data.background.transparent && (state.flag & PATH_RAY_CAMERA)) {
-				L_transparent += average(throughput);
-
-#ifdef __PASSES__
-				if (!(kernel_data.film.pass_flag & PASS_BACKGROUND))
-#endif
-					break;
-			}
-#endif // 0
-
+		/* Sample background into L_background_sc to use for shadow catcher
+		 * with background showing instead of transparency
+		 */
+		if (shadow_catched && (state.flag & PATH_RAY_CAMERA)) {
 #ifdef __BACKGROUND__
 			/* sample background shader */
-			L_background = indirect_background(kg, &state, &ray);
-			path_radiance_accum_background(&L, throughput, L_background, state.bounce);
+			L_background_sc = indirect_background(kg, &state, &ray);
 #endif
-
-			break;
 		}
-#endif
+#endif /* __SHADOW_TRICKS__ */
+
 		/* compute direct lighting and next bounce */
 		if(!kernel_path_surface_bounce(kg, rng, &sd, &throughput, &state, &L, &ray))
 			break;
@@ -982,12 +973,12 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 			float L_ao = average(L.ao);
 			shadow = saturate(shadow + L_ao);
 		}
-		L_sum = make_float3(0.0f, 0.0f, 0.0f); //L_background.x, L_background.y, L_background.z);
-		L_transparent = saturate(shadow + L_indirect); // +average(L_sum)); //L_background));
+		L_transparent = saturate(shadow + L_indirect + average(L_background));
+		L_sum = make_float3(0.0f, 0.0f, 0.0f);
 		
-		L_sum.x = L_background.x*(L_transparent);
-		L_sum.y = L_background.y*(L_transparent);
-		L_sum.z = L_background.z*(L_transparent);
+		L_sum.x = L_background_sc.x*(L_transparent);
+		L_sum.y = L_background_sc.y*(L_transparent);
+		L_sum.z = L_background_sc.z*(L_transparent);
 		L_transparent = 0.0f; // reset, because we want opaque
 	}
 #endif  /* __SHADOW_TRICKS__ */
