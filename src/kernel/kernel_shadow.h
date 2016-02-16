@@ -293,7 +293,7 @@ ccl_device_noinline bool shadow_blocked(KernelGlobals *kg,
 						ShaderData sd_object;
 						ShaderData *sd = &sd_object;
 #endif
-						shader_setup_from_ray(kg, sd, isect, ray, state->bounce+1, bounce);
+						shader_setup_from_ray(kg, sd, isect, ray); //, state->bounce + 1, bounce);
 						ray->P = ray_offset(ccl_fetch(sd, P), -ccl_fetch(sd, Ng));
 						if(ray->t != FLT_MAX) {
 							ray->D = normalize_len(Pend - ray->P, &ray->t);
