@@ -903,7 +903,29 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 
 		/* direct lighting */
 		kernel_path_surface_connect_light(kg, rng, &sd, throughput, &state, &L);
+#ifdef __SHADOW_TRICKS__
+		if (shadow_catched) {
+			/* eval background shader if nothing hit */
+#if 0
+			if (kernel_data.background.transparent && (state.flag & PATH_RAY_CAMERA)) {
+				L_transparent += average(throughput);
 
+#ifdef __PASSES__
+				if (!(kernel_data.film.pass_flag & PASS_BACKGROUND))
+#endif
+					break;
+			}
+#endif // 0
+
+#ifdef __BACKGROUND__
+			/* sample background shader */
+			L_background = indirect_background(kg, &state, &ray);
+			path_radiance_accum_background(&L, throughput, L_background, state.bounce);
+#endif
+
+			break;
+		}
+#endif
 		/* compute direct lighting and next bounce */
 		if(!kernel_path_surface_bounce(kg, rng, &sd, &throughput, &state, &L, &ray))
 			break;
@@ -934,7 +956,7 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 	 * Useful for compositing anyway.
 	 */
 	if(state.flag & PATH_RAY_CAMERA) {
-		L.shadow = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
+		//L.shadow = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
 	}
 #endif  /* __SHADOW_TRICKS__ */
 
@@ -960,8 +982,13 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 			float L_ao = average(L.ao);
 			shadow = saturate(shadow + L_ao);
 		}
-		L_transparent = saturate(shadow + L_indirect + average(L_background));
-		L_sum = make_float3(0.0f, 0.0f, 0.0f);
+		L_sum = make_float3(0.0f, 0.0f, 0.0f); //L_background.x, L_background.y, L_background.z);
+		L_transparent = saturate(shadow + L_indirect); // +average(L_sum)); //L_background));
+		
+		L_sum.x = L_background.x*(L_transparent);
+		L_sum.y = L_background.y*(L_transparent);
+		L_sum.z = L_background.z*(L_transparent);
+		L_transparent = 0.0f; // reset, because we want opaque
 	}
 #endif  /* __SHADOW_TRICKS__ */
 
