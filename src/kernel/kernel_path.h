@@ -974,11 +974,7 @@ ccl_device_inline float4 kernel_path_integrate(KernelGlobals *kg,
 			shadow = saturate(shadow + L_ao);
 		}
 		L_transparent = saturate(shadow + L_indirect + average(L_background));
-		L_sum = make_float3(0.0f, 0.0f, 0.0f);
-		
-		L_sum.x = L_background_sc.x*(L_transparent);
-		L_sum.y = L_background_sc.y*(L_transparent);
-		L_sum.z = L_background_sc.z*(L_transparent);
+		L_sum = L_background_sc*L_transparent;
 		L_transparent = 0.0f; // reset, because we want opaque
 	}
 #endif  /* __SHADOW_TRICKS__ */
