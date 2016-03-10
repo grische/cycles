@@ -269,6 +269,7 @@ void Session::run_gpu()
 			 * sample, and released/reacquired on each iteration to allow
 			 * reset and draw in between */
 			thread_scoped_lock buffers_lock(buffers_mutex);
+			thread_scoped_lock display_lock(display_mutex);
 
 			/* update status and timing */
 			update_status_time();
@@ -290,18 +291,27 @@ void Session::run_gpu()
 
 			/* wait for tonemap */
 			if(!params.background) {
-				while(gpu_need_tonemap) {
-					if(progress.get_cancel())
-						break;
+				/* don't do tonemap on main thread
+				 * if display_update_cb has been set
+				 */
+				if (display_update_cb == nullptr) {
+					while (gpu_need_tonemap) {
+						if (progress.get_cancel())
+							break;
 
-					gpu_need_tonemap_cond.wait(buffers_lock);
+						gpu_need_tonemap_cond.wait(buffers_lock);
+					}
+				}
+				else {
+					if (gpu_need_tonemap)
+						tonemap(tile_manager.state.sample);
 				}
 			}
 
 			if(!device->error_message().empty())
 				progress.set_error(device->error_message());
 
-			tiles_written = update_progressive_refine(progress.get_cancel() || display_update_cb!=nullptr);
+			tiles_written = update_progressive_refine(progress.get_cancel() || display_update_cb != nullptr);
 
 			if(progress.get_cancel())
 				break;
