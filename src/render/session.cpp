@@ -185,9 +185,6 @@ bool Session::draw_gpu(BufferParams& buffer_params, DeviceDrawParams& draw_param
 				gpu_need_tonemap_cond.notify_all();
 			}
 
-			// display update callback set, we don't want to draw with OpenGL
-			if (display_update_cb) return false;
-
 			display->draw(device, draw_params);
 
 			if(display_outdated && (time_dt() - reset_time) > params.text_timeout)
@@ -342,9 +339,6 @@ bool Session::draw_cpu(BufferParams& buffer_params, DeviceDrawParams& draw_param
 		/* then verify the buffers have the expected size, so we don't
 		 * draw previous results in a resized window */
 		if(!buffer_params.modified(display->params)) {
-
-			// display update callback set, we don't want to draw with OpenGL
-			if (display_update_cb) return false;
 
 			display->draw(device, draw_params);
 
@@ -703,6 +697,8 @@ void Session::run()
 
 bool Session::draw(BufferParams& buffer_params, DeviceDrawParams &draw_params)
 {
+	if (display_update_cb) return false;
+
 	if(device_use_gl)
 		return draw_gpu(buffer_params, draw_params);
 	else
