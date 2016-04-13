@@ -209,10 +209,15 @@ void Session::run_gpu()
 	progress.set_render_start_time(start_time + paused_time);
 
 	while(!progress.get_cancel()) {
-		/* advance to next tile */
-		bool no_tiles = !tile_manager.next();
+		/* don't advance here, but in the if-else blocks. For
+		 * interactive sessions it can happen that we're
+		 * reseeding tile manager still, so we need to do it
+		 * behind a lock. */
+		bool no_tiles = false;
 
 		if(params.background) {
+			/* not interactive, can just advance to next tile */
+			no_tiles = !tile_manager.next();
 			/* if no work left and in background mode, we can stop immediately */
 			if(no_tiles) {
 				progress.set_status("Finished");
@@ -223,6 +228,8 @@ void Session::run_gpu()
 			/* if in interactive mode, and we are either paused or done for now,
 			 * wait for pause condition notify to wake up again */
 			thread_scoped_lock pause_lock(pause_mutex);
+			/* lock acquired, now we can advance to next tile */
+			no_tiles = !tile_manager.next();
 
 			if(!pause && !tile_manager.done()) {
 				/* reset could have happened after no_tiles was set, before this lock.
