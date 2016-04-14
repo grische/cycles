@@ -2261,6 +2261,7 @@ SubsurfaceScatteringNode::SubsurfaceScatteringNode()
 {
 	name = "subsurface_scattering";
 	closure = CLOSURE_BSSRDF_CUBIC_ID;
+	falloff = ustring("Cubic");
 
 	add_input("Scale", SHADER_SOCKET_FLOAT, 0.01f);
 	add_input("Radius", SHADER_SOCKET_VECTOR, make_float3(0.1f, 0.1f, 0.1f));
@@ -2270,12 +2271,13 @@ SubsurfaceScatteringNode::SubsurfaceScatteringNode()
 
 void SubsurfaceScatteringNode::compile(SVMCompiler& compiler)
 {
+	closure = (ClosureType)falloff_enum[falloff];
 	BsdfNode::compile(compiler, input("Scale"), input("Texture Blur"), input("Radius"), input("Sharpness"));
 }
 
 void SubsurfaceScatteringNode::compile(OSLCompiler& compiler)
 {
-	compiler.parameter("Falloff", falloff_enum[closure]);
+	compiler.parameter("Falloff", falloff);
 	compiler.add(this, "node_subsurface_scattering");
 }
 

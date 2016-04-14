@@ -499,6 +499,7 @@ public:
 	bool has_surface_bssrdf() { return true; }
 	bool has_bssrdf_bump();
 
+	ustring falloff;
 	static ShaderEnum falloff_enum;
 };
 
