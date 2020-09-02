@@ -1,5 +1,6 @@
 # Generic files to ignore
 .*
+!.github
 .*.swp
 
 # Editors

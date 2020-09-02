@@ -1,0 +1,151 @@
+name: Build Standalone Cycles
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: ["Release", "Debug"]
+        os: ["windows-2019", "ubuntu-20.04", "macos-10.15"]
+        include:
+          - os: "windows-2019"
+            libs_folder: "win64_vc15"
+            libs_revision: 62481
+          - os: "ubuntu-20.04"
+            libs_folder: "linux_centos7_x86_64"
+            libs_revision: 62456
+          - os: "macos-10.15"
+            libs_folder: "darwin"
+            libs_revision: 62481
+
+    runs-on: ${{ matrix.os }}
+    env:
+      BLENDER_LIB_REVISION: ${{ matrix.libs_revision }}
+
+    steps:
+      # Checkout project
+      - uses: actions/checkout@v2
+
+      # Create a cache of the SVN checkout, to reduce load/traffic on upstream SVN
+      - name: Cache blender lib folder ${{ matrix.libs_folder }}
+        uses: actions/cache@v2
+        id: lib-cache
+        with:
+          path: ${{ runner.workspace }}/lib
+          key: lib-cache-${{ matrix.libs_folder }}-${{ env.BLENDER_LIB_REVISION }}
+          # Allow even older restore keys to reduce traffic on upstream SVN
+          # Legacy restore key "blender-libs-${{ runner.os }}"
+          restore-keys: |
+            lib-cache-${{ matrix.libs_folder }}-
+
+      # Initialise blender/lib svn folder
+      - name: Initialise SVN blender/lib folder
+        if: steps.lib-cache.outputs.cache-hit != 'true' # ignore on a full cache hit
+        working-directory: ${{ runner.workspace }}
+        shell: bash
+        run: "[[ -d '${{ runner.workspace }}/lib/.svn' ]] || svn checkout --depth empty https://svn.blender.org/svnroot/bf-blender/trunk/lib"
+
+      # Run the actual SVN checkout
+      - name: Checkout SVN blender/lib/${{ matrix.libs_folder }} folder
+        working-directory: ${{ runner.workspace }}/lib
+        run: svn update --depth infinity --revision ${{ env.BLENDER_LIB_REVISION }} ${{ matrix.libs_folder }}
+
+      # Install build-time dependencies required for Ubuntu (especially headers)
+      - name: Install Ubuntu dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt install -y libgl1-mesa-dev libglu1-mesa-dev
+
+      # Create CMake folders which are used as working-directory later
+      - name: Create Environment Folders
+        run: |
+          cmake -E make_directory ${{runner.workspace}}/build
+          cmake -E make_directory ${{runner.workspace}}/renders
+
+      - name: Configure CMake
+        working-directory: ${{runner.workspace}}/build
+        # Note the current convention is to use the -S and -B options here to specify source
+        # and build directories, but this is only available with CMake 3.13 and higher.
+        # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+        run: cmake ${{ github.workspace }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DWITH_CYCLES_STANDALONE_GUI=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+
+      # Start building Cycles
+      - name: Build
+        id: cmake-build
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config ${{ matrix.build_type }} --parallel --target install
+
+      # Upload binary
+      - name: Upload Cycles standalone binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: cycles_${{ runner.os }}_${{ matrix.build_type }}_binary
+          path: ${{runner.workspace}}/build/bin
+
+      # Upload libraries
+      - name: Upload Cycles libraries
+        uses: actions/upload-artifact@v2
+        with:
+          name: cycles_${{ runner.os }}_${{ matrix.build_type }}_libraries
+          path: ${{runner.workspace}}/build/lib
+
+      # Try to run cmake tests (there are not tests currently)
+      - name: Test
+        if: steps.cmake-build.outcome == 'success'
+        working-directory: ${{runner.workspace}}/build
+        run: ctest -C ${{ matrix.build_type }}
+
+      # Try to run cycles and render all example files (Unix)
+      - name: Run Cycles for ${{ runner.os }}
+        id: cycles-render
+        if: runner.os != 'Windows'
+        continue-on-error: true
+        working-directory: ${{ runner.workspace }}/renders
+        shell: bash
+        run: |
+          for examplepath in ${{ github.workspace }}/examples/*.xml
+          do
+            examplename=$(basename $examplepath)
+            echo "Rendering $examplename"
+            ${{runner.workspace}}/build/bin/cycles --quiet --samples 5 --output ${examplename}.png ${examplepath}
+          done
+
+      # Try to run cycles and render all example files (Windows)
+      - name: Run Cycles for Windows
+        id: cycles-render-windows
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        working-directory: ${{ runner.workspace }}/renders
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path ${{ github.workspace }}\examples -File | Foreach {Write-Host 'Will generate' $_.name}
+          Get-ChildItem -Path ${{ github.workspace }}\examples -File | Foreach {${{runner.workspace}}\build\bin\${{ matrix.build_type }}\cycles.exe --quiet --samples 5 --output $($_.name + '.png') $_.FullName }
+
+      # Upload results (even if some of them failed rendering)
+      - name: Upload Cycles renders
+        uses: actions/upload-artifact@v2
+        with:
+          name: cycles_${{ runner.os }}_${{ matrix.build_type }}_renders
+          path: ${{ runner.workspace }}/renders/
+
+      # Check if all renders worked, if not stop workflow here
+      - name: Stop if rendering failed
+        if: ${{ steps.cycles-render.outcome != 'success' && steps.cycles-render-windows.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "::error file=${{runner.os}},line=${{matrix.build_type}}::Not all example files could be rendered. See logs for details!"
+          exit 1
+
+      # Reduce the Windows Github Actions cache size
+      # The size for both lib/win64_vc15 and lib/.svn is in total 1.7GB. But we only need lib/.svn to reduce the traffic to upstream.
+      - name: Reduce Windows cache size
+        if: runner.os == 'Windows'
+        working-directory: ${{ runner.workspace }}/lib
+        shell: cmd
+        run: move ${{ matrix.libs_folder }} ../
