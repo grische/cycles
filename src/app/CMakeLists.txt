@@ -98,10 +98,13 @@ macro(cycles_target_link_libraries target)
   target_link_libraries(
     ${target}
     ${OPENIMAGEIO_LIBRARIES}
+    ${PNG_LIBRARIES}
+    ${JPEG_LIBRARIES}
     ${OPENEXR_LIBRARIES}
     ${OPENJPEG_LIBRARIES}
     ${PUGIXML_LIBRARIES}
     ${BOOST_LIBRARIES}
+    ${ZLIB_LIBRARIES}
     ${CMAKE_DL_LIBS}
     ${PLATFORM_LINKLIBS}
   )

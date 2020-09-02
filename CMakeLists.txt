@@ -50,6 +50,14 @@ list(APPEND CMAKE_MODULE_PATH
 )
 include("${PROJECT_SOURCE_DIR}/src/cmake/macros.cmake")
 
+
+if(UNIX AND NOT APPLE)
+  if(NOT WITH_CXX11_ABI)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+  endif()
+endif()
+
 ###########################################################################
 # Global settings.
 
@@ -81,6 +89,7 @@ option(WITH_CYCLES_OPENVDB         "Build Cycles with OpenVDB support" OFF)
 option(WITH_CYCLES_LOGGING         "Build Cycles with logging support" OFF)
 option(WITH_CYCLES_DEBUG           "Build Cycles with with extra debug capabilties" OFF)
 option(WITH_CYCLES_CUDA_BINARIES   "Build Cycles CUDA binaries" OFF)
+option(WITH_CYCLES_EMBREE          "Build Cycles with embree support" ON)
 set(CYCLES_CUDA_BINARIES_ARCH sm_20 sm_21 sm_30 sm_35 sm_50 sm_52 CACHE STRING "CUDA architectures to build binaries for")
 mark_as_advanced(CYCLES_CUDA_BINARIES_ARCH)
 

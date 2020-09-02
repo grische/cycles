@@ -2,9 +2,7 @@
 # Precompiled libraries tips and hints, for find_package().
 
 if(CYCLES_STANDALONE_REPOSITORY)
-  if(APPLE OR WIN32)
     include(precompiled_libs)
-  endif()
 endif()
 
 ###########################################################################

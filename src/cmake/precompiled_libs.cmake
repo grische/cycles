@@ -20,6 +20,31 @@ elseif(WIN32)
 	else()
 		message(FATAL_ERROR "Unsupported Visual Studio Version")
 	endif()
+else()
+	# Path to a locally compiled libraries.
+	set(LIBDIR_NAME ${CMAKE_SYSTEM_NAME}_${CMAKE_SYSTEM_PROCESSOR})
+	string(TOLOWER ${LIBDIR_NAME} LIBDIR_NAME)
+	set(LIBDIR_NATIVE_ABI ${CMAKE_SOURCE_DIR}/../lib/${LIBDIR_NAME})
+
+	# Path to precompiled libraries with known CentOS 7 ABI.
+	set(LIBDIR_CENTOS7_ABI ${CMAKE_SOURCE_DIR}/../lib/linux_centos7_x86_64)
+
+	# Choose the best suitable libraries.
+	if(EXISTS ${LIBDIR_NATIVE_ABI})
+		set(_lib_DIR ${LIBDIR_NATIVE_ABI})
+	elseif(EXISTS ${LIBDIR_CENTOS7_ABI})
+		set(_lib_DIR ${LIBDIR_CENTOS7_ABI})
+		set(WITH_CXX11_ABI OFF)
+
+		if(CMAKE_COMPILER_IS_GNUCC AND
+			 CMAKE_C_COMPILER_VERSION VERSION_LESS 9.3)
+			message(FATAL_ERROR "GCC version must be at least 9.3 for precompiled libraries, found ${CMAKE_C_COMPILER_VERSION}")
+		endif()
+	endif()
+
+	# Avoid namespace pollustion.
+	unset(LIBDIR_NATIVE_ABI)
+	unset(LIBDIR_CENTOS7_ABI)
 endif()
 
 ###########################################################################
@@ -32,17 +57,27 @@ _set_default(LLVM_ROOT_DIR "${_lib_DIR}/llvm")
 _set_default(OSL_ROOT_DIR "${_lib_DIR}/osl")
 _set_default(OPENEXR_ROOT_DIR "${_lib_DIR}/openexr")
 _set_default(TBB_ROOT_DIR "${_lib_DIR}/tbb")
+_set_default(ZLIB_ROOT "${_lib_DIR}/zlib")
+_set_default(EMBREE_ROOT_DIR "${_lib_DIR}/embree")
 
 # Dependencies for OpenImageIO.
-set(PNG_LIBRARIES "${_lib_DIR}/png/lib/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
 set(JPEG_LIBRARIES "${_lib_DIR}/jpeg/lib/libjpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-if (MSVC)
-	set(JPEG_LIBRARIES ${JPEG_LIBRARIES};${_lib_DIR}/openjpeg/lib/openjp2.lib)
+if(NOT UNIX)
+    set(PNG_LIBRARIES "${_lib_DIR}/png/lib/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
+else()
+    set(PNG_LIBRARIES "${_lib_DIR}/png/lib/libpng16${CMAKE_STATIC_LIBRARY_SUFFIX}")
 endif()
+
+if (MSVC)
+	set(JPEG_LIBRARIES ${JPEG_LIBRARIES};${_lib_DIR}/openjpeg/lib/openjp2${CMAKE_STATIC_LIBRARY_SUFFIX})
+else()
+	set(JPEG_LIBRARIES ${JPEG_LIBRARIES};${_lib_DIR}/openjpeg/lib/libopenjp2${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif()
+
 # TODO(sergey): Move naming to a consistent state.
 set(TIFF_LIBRARY "${_lib_DIR}/tiff/lib/libtiff${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
-if(APPLE)
+if(APPLE OR UNIX)
 	# Precompiled PNG library depends on ZLib.
 	find_package(ZLIB REQUIRED)
 	list(APPEND PLATFORM_LINKLIBS ${ZLIB_LIBRARIES})
@@ -138,8 +173,50 @@ elseif(MSVC)
 		optimized ${OPENEXR_ROOT_DIR}/lib/IlmThread_s.lib
 		debug ${OPENEXR_ROOT_DIR}/lib/IlmThread_s_d.lib
 	)
-	set(EMBREE_ROOT_DIR ${_lib_DIR}/embree)
 
+	set(TBB_LIBRARY
+		optimized ${TBB_ROOT_DIR}/lib/tbb.lib
+		debug ${TBB_ROOT_DIR}/lib/debug/tbb_debug.lib
+	)
+
+	set(EMBREE_TASKING_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/tasking.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/tasking_d.lib
+	)
+	set(EMBREE_EMBREE3_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/embree3.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/embree3_d.lib
+	)
+	set(EMBREE_EMBREE_AVX_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/embree_avx.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/embree_avx_d.lib
+	)
+	set(EMBREE_EMBREE_AVX2_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/embree_avx2.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/embree_avx2_d.lib
+	)
+	set(EMBREE_EMBREE_SSE42_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/embree_sse42.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/embree_sse42_d.lib
+	)
+	set(EMBREE_LEXERS_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/lexers.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/lexers_d.lib
+	)
+	set(EMBREE_MATH_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/math.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/math_d.lib
+	)
+	set(EMBREE_SIMD_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/simd.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/simd_d.lib
+	)
+	set(EMBREE_SYS_LIBRARY
+		optimized ${EMBREE_ROOT_DIR}/lib/sys.lib
+		debug  ${EMBREE_ROOT_DIR}/lib/sys_d.lib
+	)
+elseif(UNIX)
+    _set_default(GLEW_ROOT_DIR "${_lib_DIR}/glew")
 endif()
 
 unset(_lib_DIR)
