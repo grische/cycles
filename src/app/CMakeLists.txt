@@ -125,6 +125,19 @@ if(WITH_CYCLES_STANDALONE)
     set_target_properties(cycles PROPERTIES INSTALL_RPATH $ORIGIN/lib)
   endif()
   unset(SRC)
+
+  # TBB on Windows is linked dynamically, copying it into the bin folder
+  if(WIN32)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      add_custom_command(TARGET cycles POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${TBB_ROOT_DIR}/lib/debug/tbb_debug${CMAKE_SHARED_LIBRARY_SUFFIX} $<TARGET_FILE_DIR:cycles>
+      )
+    else()
+      add_custom_command(TARGET cycles POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${TBB_ROOT_DIR}/lib/tbb${CMAKE_SHARED_LIBRARY_SUFFIX} $<TARGET_FILE_DIR:cycles>
+      )
+    endif()
+  endif()
 endif()
 
 if(WITH_CYCLES_NETWORK)
